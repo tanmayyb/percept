@@ -1,0 +1,6 @@
+[submodule "src/percept_core"]
+	path = src/percept_core
+	url = https://github.com/tanmayyb/percept_core.git
+[submodule "src/percept_interfaces"]
+	path = src/percept_interfaces
+	url = https://github.com/tanmayyb/percept_interfaces.git

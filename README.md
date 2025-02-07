@@ -21,7 +21,7 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
 | 2. ROS 2 Humble ([debian](http://wiki.ros.org/noetic/Installation/Debianhttps:/))                                   |
 | 3. Conda + CUDA ([instructions](https://x.com/jeremyphoward/status/1697435241152127369))                            |
 | 4. librealsenseSDK ([debian](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)) |
-| 5. Sim (To Be Updated)      |
+| 5. Sim (Under Development)      |
 
 ## Setup
 
@@ -35,7 +35,20 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
     ```
     ./setup.sh
     ```
-- (deprecated) Set `$COPPELIASIM_ROOT` to the CoppeliaSim installation directory (for simulation)
+
+- Build the workspace
+    ```
+    . build.sh
+    ```
+
+- Run the perception pipeline
+    ```
+    ros2 launch percept rs_static.py
+    ```
+- Or source the environment if not already sourced
+    ```
+    . env.sh
+    ```
 
 ## Credits
 

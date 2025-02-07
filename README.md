@@ -26,8 +26,16 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
 ## Setup
 
 - Install aforementioned requirements and clone this git repo
-- Run `./setup.sh` - this will create a virtual environment and install all dependencies and libraries
-- Set `$COPPELIASIM_ROOT` to the CoppeliaSim installation directory (for simulation)
+    ```
+    git clone https://github.com/tanmayyb/percept.git
+    cd percept
+    git submodule update --init --recursive
+    ```
+- Create a virtual environment and install all dependencies and libraries
+    ```
+    ./setup.sh
+    ```
+- (deprecated) Set `$COPPELIASIM_ROOT` to the CoppeliaSim installation directory (for simulation)
 
 ## Credits
 

@@ -1,0 +1,18 @@
+# env
+percept_env/
+
+
+# data/stubs
+sample-data/
+
+# building
+.catkin_tools/
+build/
+devel/
+logs/
+install/
+log/
+
+# caches
+**/__pycache__/
+.vscode/

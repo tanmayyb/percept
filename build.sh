@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e
 source /opt/ros/humble/setup.bash
 conda activate percept_env
 # source install/setup.bash

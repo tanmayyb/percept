@@ -1,3 +1,16 @@
+/***************** Velocity Heuristic *****************/
+
+/***********************************************
+ * mass_dist_vec = robot_obstacle_vec: vector from robot to obstacle
+ * mass_rvel_vec = rel_vel: relative velocity between robot and obstacle
+ * dist_to_mass = dist_obs: distance between robot and obstacle
+ * force_vec = curr_force: force vector
+ * mass_dist_vec_normalized = normalized_obs_to_agent/cfagent_to_obs: normalized vector from robot to obstacle
+ * 
+ */
+
+
+
 void RealCfAgent::circForce(const std::vector<Obstacle> &obstacles,
                             const double k_circ, const CfAgent &agent) 
 {
@@ -61,9 +74,14 @@ Eigen::Vector3d VelHeuristicCfAgent::currentVector(
   Eigen::Vector3d normalized_vel = agent_vel.normalized();
   Eigen::Vector3d normalized_obs_to_agent{
       (obstacles[obstacle_id].getPosition() - agent_pos).normalized()};
+
+
   Eigen::Vector3d current{
       normalized_vel -
       (normalized_obs_to_agent * normalized_vel.dot(normalized_obs_to_agent))};
+  
+  
+  
   if (current.norm() < 1e-10) {
     current << 0.0, 0.0, 1.0;
     // current = makeRandomVector();

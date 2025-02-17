@@ -1,3 +1,16 @@
+/***************** Goal Obstacle Heuristic *****************/
+
+/***********************************************
+ * mass_dist_vec = robot_obstacle_vec: vector from robot to obstacle
+ * mass_rvel_vec = rel_vel: relative velocity between robot and obstacle
+ * dist_to_mass = dist_obs: distance between robot and obstacle
+ * force_vec = curr_force: force vector
+ * mass_dist_vec_normalized = cfagent_to_obs: normalized vector from robot to obstacle
+ * obstacle_current_vec = obst_current: current vector
+ * goal_current_vec = goal_current: goal current vector
+ */
+
+
 void RealCfAgent::circForce(const std::vector<Obstacle> &obstacles,
                             const double k_circ, const CfAgent &agent) 
 {
@@ -54,6 +67,8 @@ Eigen::Vector3d GoalObstacleHeuristicCfAgent::currentVector(
 Eigen::Vector3d GoalObstacleHeuristicCfAgent::calculateRotationVector(
     const Eigen::Vector3d agent_pos, const Eigen::Vector3d goal_pos,
     const std::vector<Obstacle> &obstacles, const int obstacle_id) const {
+
+  // nearest neighbor
   double min_dist_obs = 100.0;
   int closest_obstacle_it = 0;
   for (int i = 0; i < obstacles.size() - 1; i++) {
@@ -67,3 +82,35 @@ Eigen::Vector3d GoalObstacleHeuristicCfAgent::calculateRotationVector(
       }
     }
   }
+
+
+  // Vector from active obstacle to the obstacle which is closest to the
+  // active obstacle
+  Eigen::Vector3d obstacle_vec = obstacles[closest_obstacle_it].getPosition() -
+                                 obstacles[obstacle_id].getPosition();
+  Eigen::Vector3d cfagent_to_obs{obstacles[obstacle_id].getPosition() -
+                                 agent_pos};
+  cfagent_to_obs.normalize();
+
+
+  // Current vector is perpendicular to obstacle surface normal and shows in
+  // opposite direction of obstacle_vec
+  Eigen::Vector3d obst_current{
+      (cfagent_to_obs * obstacle_vec.dot(cfagent_to_obs)) - obstacle_vec};
+  Eigen::Vector3d goal_vec{goal_pos - agent_pos};
+  Eigen::Vector3d goal_current{goal_vec -
+                               cfagent_to_obs * (cfagent_to_obs.dot(goal_vec))};
+  Eigen::Vector3d current{goal_current.normalized() +
+                          obst_current.normalized()};
+
+
+
+  if (current.norm() < 1e-10) {
+    current << 0.0, 0.0, 1.0;
+    // current = makeRandomVector();
+  }
+  current.normalize();
+  Eigen::Vector3d rot_vec{current.cross(cfagent_to_obs)};
+  rot_vec.normalize();
+  return rot_vec;
+}

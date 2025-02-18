@@ -13,7 +13,7 @@ def generate_wall_yaml(wall_width=21, wall_height=21, spacing=0.50, # radius = 1
     hole_z_min = hole_grid_z - hole_height / 2
     hole_z_max = hole_grid_z + hole_height / 2
 
-    path = 'src/percept_core/config/hole_in_the_wall_hard.yaml'
+    path = 'src/percept_core/assets/benchmark_scenes/hole_in_the_wall_hard.yaml'
     with open(path, 'w') as f:
         f.write('# hole in the wall example\n')
         f.write('obstacles:\n')

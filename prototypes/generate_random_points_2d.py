@@ -47,6 +47,6 @@ if __name__ == '__main__':
         num_points=15,
         x_range=(-0.25, 0.25),
         y_range=(0.50, 2.0),
-        output_path='src/percept_core/config/obstacles6.yaml',
+        output_path='src/percept_core/assets/benchmark_scenes/obstacles6.yaml',
         seed=42
     )

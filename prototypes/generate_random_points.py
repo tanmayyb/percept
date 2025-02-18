@@ -51,6 +51,6 @@ if __name__ == '__main__':
         x_range=(-0.25, 0.25),
         y_range=(0.5, 2.0),
         z_range=(0.0, 2.0),
-        output_path='src/percept_core/config/obstacles3.yaml',
+        output_path='src/percept_core/assets/benchmark_scenes/obstacles3.yaml',
         seed=42
     )

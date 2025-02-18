@@ -60,7 +60,7 @@ def generate_maze_yaml(num_walls=5,           # Number of parallel walls
                     yaml_content += f'  radius: {obstacle_radius}\n'
     
     # Write to file
-    path = 'src/percept_core/config/maze_2d.yaml'
+    path = 'src/percept_core/assets/benchmark_scenes/maze_2d.yaml'
     with open(path, 'w') as f:
         f.write(yaml_content)
 

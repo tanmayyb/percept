@@ -7,12 +7,13 @@ sample-data/
 
 # building
 .catkin_tools/
-build/
-devel/
-logs/
-install/
-log/
+**/build/
+**/devel/
+**/logs/
+**/install/
+**/log/
 
 # caches
 **/__pycache__/
-.vscode/
+**/.vscode/
+**/.cache/

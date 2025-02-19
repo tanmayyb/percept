@@ -1,0 +1,13 @@
+services:
+  gavec_planner:
+    build: .
+    container_name: gavec_planner
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/root/.Xauthority
+      - .:/ros2_ws
+    stdin_open: true
+    tty: true
+    command: /bin/bash

@@ -2,9 +2,11 @@
 
 Goal: Fast (~30Hz) perception pipline for workspace approximation research for heuristic-based multi-agent planning framework (PMAF) by Laha et al 2023. Support both sim/real-world perception for multiple cameras.
 
-![Velocity Heuristic](imgs/250218_velocity_heuristic.png)
-![Rviz PointCloud](imgs/250121_rviz_pointclouds.png)
-![Rviz Primitives](imgs/250121_rviz_primitives.png)
+<div style="display: flex; justify-content: space-between;">
+    <img src="imgs/250218_velocity_heuristic.png" width="32%" alt="Velocity Heuristic"/>
+    <img src="imgs/250121_rviz_pointclouds.png" width="32%" alt="Rviz PointCloud"/>
+    <img src="imgs/250121_rviz_primitives.png" width="32%" alt="Rviz Primitives"/>
+</div>
 
 
 ## Requirements
@@ -23,7 +25,8 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
 | 2. ROS 2 Humble ([debian](http://wiki.ros.org/noetic/Installation/Debianhttps:/))                                   |
 | 3. Conda + CUDA ([instructions](https://x.com/jeremyphoward/status/1697435241152127369))                            |
 | 4. librealsenseSDK ([debian](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)) |
-| 5. Sim (Under Development)      |
+| 5. Docker ([instructions](https://github.com/tanmayyb/setup/blob/main/docker.sh)) |
+| 6. Sim (Under Development)      |
 
 ## Setup
 
@@ -33,6 +36,9 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
     cd percept
     git submodule update --init --recursive
     ```
+
+### Percept (Native)
+
 - Create a virtual environment and install all dependencies and libraries
     ```
     ./setup.sh
@@ -52,21 +58,50 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
     . env.sh
     ```
 
+### GA Circular Fields Planner (Docker)
+
+- Allow docker access to X11
+    ```
+    xhost +local:docker
+    ```
+
+- Build the container
+    ```
+    docker-compose up -d
+    ```
+
+- Connect to the container
+    ```
+    docker exec -it ga_cf_planner bash
+    ```
+
+- Start the container if it is not running
+    ```
+    docker start ga_cf_planner
+    ```
+
+- Inside the container:
+    ```
+    . build.sh
+    ros2 launch experiments oriented_pointmass_launch.py
+    ros2 launch experiments manipulator_launch.py
+    ```
+
+Note: `src/ga_cf_planner` is mounted as a volume in the container. Changes made to that directory inside the container will be reflected in the host machine.
+
 ## Credits
 
 ### Collaborators
 
+- Tobias Loew
 - Riddhiman Laha
 - Tinayu Ren
 
 ### Projects
 
+- Gafro
 - CuPoch
-- Open3D
-- Numba
-- Cupy
-- CoppeliaSim
-- PyRep (by stepjam)
+- Maniskill
 
 ## Performance
 

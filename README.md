@@ -95,6 +95,7 @@ Note: `src/ga_cf_planner` is mounted as a volume in the container. Changes made 
 
 - Tobias Loew
 - Riddhiman Laha
+- Luis Figueredo
 - Tinayu Ren
 
 ### Projects

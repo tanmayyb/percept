@@ -2,10 +2,10 @@
 
 Goal: Fast (~30Hz) perception pipline for workspace approximation research for heuristic-based multi-agent planning framework (PMAF) by Laha et al 2023. Support both sim/real-world perception for multiple cameras.
 
-<div style="display: flex; justify-content: space-between;">
-    <img src="imgs/250218_velocity_heuristic.png" width="32%" alt="Velocity Heuristic"/>
-    <img src="imgs/250121_rviz_pointclouds.png" width="32%" alt="Rviz PointCloud"/>
-    <img src="imgs/250121_rviz_primitives.png" width="32%" alt="Rviz Primitives"/>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <img src="imgs/250218_velocity_heuristic.png" height="200px" alt="Velocity Heuristic"/>
+    <img src="imgs/250121_rviz_pointclouds.png" height="200px" alt="Rviz PointCloud"/>
+    <img src="imgs/250121_rviz_primitives.png" height="200px" alt="Rviz Primitives"/>
 </div>
 
 

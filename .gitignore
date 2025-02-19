@@ -17,7 +17,3 @@ sample-data/
 **/__pycache__/
 **/.vscode/
 **/.cache/
-
-
-# assets
-src/percept_core/assets/benchmark_scenes/generated_scenario.yaml

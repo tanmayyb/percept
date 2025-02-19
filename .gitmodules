@@ -4,3 +4,7 @@
 [submodule "src/percept_interfaces"]
 	path = src/percept_interfaces
 	url = https://github.com/tanmayyb/percept_interfaces.git
+[submodule "src/ga_cf_planner"]
+	path = src/ga_cf_planner
+	url = git@github.com:loewt/ga_circular_fields_experiments.git
+	branch = dev/tbishnoi/staging

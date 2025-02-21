@@ -19,18 +19,18 @@ percept_config:
         wall_center_j: 1.0
         wall_offset_k: 1.0
         include_hole: true
-        hole_center_x: -0.50
+        hole_center_x: 0.0
         hole_center_y: 0.0
-        hole_width: 0.3
+        hole_width: 1.0
         hole_height: 1.0
     # scene_type: "static" # static, or generated
     # static_scene_path: "assets/benchmark_scenes/hole_in_the_wall_easy.yaml"
   fields_config: 
-    k_cf_velocity: 0.01
-    k_cf_obstacle: 0.01
-    k_cf_goal: 0.01
-    k_cf_goalobstacle: 0.01
-    k_cf_random: 0.01
+    k_cf_velocity: 0.001
+    k_cf_obstacle: 0.001
+    k_cf_goal: 0.001
+    k_cf_goalobstacle: 0.001
+    k_cf_random: 0.001
     agent_radius: 0.05
     mass_radius: 0.05
     max_allowable_force: 10.0
@@ -57,7 +57,7 @@ planner_config:
       radius: 0.05
       max_velocity: 0.1
       approach_distance: 0.25
-      k_attractor_force: 1.0
+      k_attractor_force: 2.0
       k_damping: 4.0
       forces: ["attractor_force", "velocity_heuristic_force"]
     - detect_shell_radius: 5.0
@@ -65,14 +65,6 @@ planner_config:
       radius: 0.05
       max_velocity: 0.1
       approach_distance: 0.25
-      k_attractor_force: 2.0
+      k_attractor_force: 1.0
       k_damping: 4.0
       forces: ["attractor_force", "obstacle_heuristic_force"]
-    - detect_shell_radius: 5.0
-      mass: 1.0
-      radius: 0.05
-      max_velocity: 0.1
-      approach_distance: 0.25
-      k_attractor_force: 5.0
-      k_damping: 4.0
-      forces: ["attractor_force", "random_heuristic_force"]

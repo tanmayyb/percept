@@ -26,7 +26,11 @@ percept_config:
     # scene_type: "static" # static, or generated
     # static_scene_path: "assets/benchmark_scenes/hole_in_the_wall_easy.yaml"
   fields_config: 
-    k_circular_force: 0.01
+    k_cf_velocity: 0.01
+    k_cf_obstacle: 0.01
+    k_cf_goal: 0.01
+    k_cf_goalobstacle: 0.01
+    k_cf_random: 0.01
     agent_radius: 0.05
     mass_radius: 0.05
     max_allowable_force: 10.0

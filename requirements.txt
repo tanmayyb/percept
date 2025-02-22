@@ -7,3 +7,12 @@ lark-parser
 # project-specific
 pyyaml
 cupoch
+
+
+# data analysis
+ipykernel
+pandas
+matplotlib
+seaborn
+plotly
+nbformat

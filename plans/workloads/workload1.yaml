@@ -52,19 +52,31 @@ planner_config:
     start_orientation: [1.0, 0.0, 0.0, 0.0]
     goal_orientation: [1.0, 0.0, 0.0, 0.0]
   agents:
-    - detect_shell_radius: 5.0
-      mass: 1.0
+    - mass: 1.0
       radius: 0.05
       max_velocity: 0.1
       approach_distance: 0.25
-      k_attractor_force: 2.0
-      k_damping: 4.0
-      forces: ["attractor_force", "velocity_heuristic_force"]
-    - detect_shell_radius: 5.0
-      mass: 1.0
+      forces:
+        attractor_force:
+          k_gain: 1.0
+          k_stiffness_linear: 1.0
+          k_stiffness_angular: 0.01
+          k_damping_linear: 4.0
+          k_damping_angular: 0.04
+        velocity_heuristic_force:
+          k_gain: 1.0
+          detect_shell_radius: 5.0
+    - mass: 1.0
       radius: 0.05
       max_velocity: 0.1
       approach_distance: 0.25
-      k_attractor_force: 1.0
-      k_damping: 4.0
-      forces: ["attractor_force", "obstacle_heuristic_force"]
+      forces:
+        attractor_force:
+          k_gain: 1.0
+          k_stiffness_linear: 1.0
+          k_stiffness_angular: 0.01
+          k_damping_linear: 4.0
+          k_damping_angular: 0.04
+        obstacle_heuristic_force:
+          k_gain: 1.0
+          detect_shell_radius: 5.0

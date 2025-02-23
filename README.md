@@ -100,6 +100,16 @@ Note: `src/ga_cf_planner` is mounted as a volume in the container. Changes made 
     ```
     python eval/process_results.py --filepath <result_file> --plot
     ```
+### Plan Execution
+- Generate the plan (generates workloads and a run.plan file)
+    ```
+    python eval/plans/25-02-23_narrow_passage_agents_ablation/plan.py
+    ```
+
+- Run the plan
+    ```
+    python eval/run_plan.py eval/plans/25-02-23_narrow_passage_agents_ablation --duration 30 --enable_metrics
+    ```
 
 ## Credits
 

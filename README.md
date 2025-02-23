@@ -89,6 +89,18 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
 
 Note: `src/ga_cf_planner` is mounted as a volume in the container. Changes made to that directory inside the container will be reflected in the host machine.
 
+## Evaluation
+
+- Run the evaluation on a workload
+    ```
+    ros2 launch mp_eval launch_workload.py workload:=eval/workloads/workload1.yaml disable_metrics:=false timed_run:=60.0
+    ```
+
+- Process the results
+    ```
+    python eval/process_results.py --filepath <result_file> --plot
+    ```
+
 ## Credits
 
 ### Collaborators

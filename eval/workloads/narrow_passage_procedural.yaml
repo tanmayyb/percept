@@ -1,16 +1,45 @@
 metadata:
   datetime: "2024-03-19 10:00:00"
-  name: "narrow_passage"
+  name: "narrow_passage_procedural"
   description: "A sample workload configuration for multi-agent navigation"
 
 
 percept_config:
   mode: "static" # realsense, sim, or static 
   scene_config:
-    scene_type: "static" # static, or generated
+    scene_type: "generated" # static, or generated
+    # scene_params: 
+        # name: "narrow_passage" # can be any identifier
+        # static_scene_path: "assets/benchmark_scenes/auto_generated_scene.yaml"
     scene_params: 
-        name: "narrow_passage" # can be any identifier
-        static_scene_path: "assets/benchmark_scenes/auto_generated_scene.yaml"
+      scene_generation_type: "narrow_passage"
+      scene_generation_params:
+        wall1:
+          spacing: 0.10
+          plane: "xz"
+          wall_width: 6.0
+          wall_height: 6.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 0.5
+          include_hole: true
+          hole_center_x: -0.5
+          hole_center_y: 0.0
+          hole_width: 1.0
+          hole_height: 6.0
+        wall2:
+          spacing: 0.10
+          plane: "xz"
+          wall_width: 6.0
+          wall_height: 6.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 1.0
+          include_hole: true
+          hole_center_x: 0.5
+          hole_center_y: 0.0
+          hole_width: 1.0
+          hole_height: 6.0
   fields_config: 
     k_cf_velocity: 0.001
     k_cf_obstacle: 0.001
@@ -23,7 +52,7 @@ percept_config:
     publish_force_vector: false
     show_processing_delay: false
   rviz_config:
-    show_rviz: false
+    show_rviz: true
     rviz_config_path: "rviz2/planning.rviz"
 
 planner_config:

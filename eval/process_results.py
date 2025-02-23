@@ -112,10 +112,11 @@ class SceneVisualizer:
     def from_metrics_data(cls, metrics_data: MetricsData):
         filename = metrics_data.filename
         
-        # Build agent path coordinates
+        # Build agent path coordinates and timestamps
         x_coords = [pose['position']['x'] for pose in metrics_data.agent_poses]
         y_coords = [pose['position']['y'] for pose in metrics_data.agent_poses]
         z_coords = [pose['position']['z'] for pose in metrics_data.agent_poses]
+        timestamps = [pose['timestamp'] - metrics_data.start_timestamp for pose in metrics_data.agent_poses]
 
         # Extract pointcloud coordinates (assuming one pointcloud record)
         points = metrics_data.pointclouds[0]['points']
@@ -127,10 +128,11 @@ class SceneVisualizer:
             z=z_coords,
             mode='lines+markers',
             marker=dict(
-                size=4,
-                color=z_coords,
-                colorscale='Viridis',
-                showscale=True
+                size=1,
+                color=timestamps,  # Color based on timestamps
+                colorscale='Turbo',
+                showscale=True,
+                colorbar=dict(title='Time (s)')  # Add colorbar title
             ),
             line=dict(color='blue', width=2),
             name='Agent Path'
@@ -140,11 +142,31 @@ class SceneVisualizer:
             y=pointcloud_y,
             z=pointcloud_z,
             mode='markers',
-            marker=dict(size=6, color='red', symbol='circle'),
+            marker=dict(size=2, color='red', symbol='circle'),
             name='Pointcloud'
         )
+
+
+        # Create start and goal markers
+        start_marker = go.Scatter3d(
+            x=[metrics_data.start_pos[0]],
+            y=[metrics_data.start_pos[1]], 
+            z=[metrics_data.start_pos[2]],
+            mode='markers',
+            marker=dict(size=8, color='blue', symbol='diamond'),
+            name='Start'
+        )
+
+        goal_marker = go.Scatter3d(
+            x=[metrics_data.goal_pos[0]],
+            y=[metrics_data.goal_pos[1]],
+            z=[metrics_data.goal_pos[2]], 
+            mode='markers',
+            marker=dict(size=8, color='green', symbol='diamond'),
+            name='Goal'
+        )
         
-        fig = go.Figure(data=[agent_trace, pointcloud_trace])
+        fig = go.Figure(data=[agent_trace, pointcloud_trace, start_marker, goal_marker])
         fig.update_layout(
             title='Agent Path and Pointcloud Visualization: ' + filename,
             scene=dict(
@@ -171,6 +193,13 @@ class SceneVisualizer:
 
 def plot_agent_planning_time(metrics_data: MetricsData) -> go.Figure:
     df = pd.DataFrame(metrics_data.agent_planning_time_list)
+    
+    # Calculate reasonable y-axis range using percentiles
+    y_values = df['planning_time']
+    q1 = y_values.quantile(0.05)  # 5th percentile
+    q3 = y_values.quantile(0.95)  # 95th percentile
+    y_max = q3 + (q3 - q1) * 1.5  # Upper bound using IQR method
+
     fig = go.Figure()
     for agent_id in df['agent_id'].unique():
         agent_data = df[df['agent_id'] == agent_id]
@@ -186,9 +215,10 @@ def plot_agent_planning_time(metrics_data: MetricsData) -> go.Figure:
         title='Agent Planning Time: ' + metrics_data.filename,
         xaxis_title='Time (seconds)',
         yaxis_title='Planning Time (seconds)',
-        yaxis=dict(range=[0.0, 0.10]),
+        yaxis=dict(range=[0.0, y_max]),  # Dynamic range
         width=800,
-        height=500
+        height=500,
+        xaxis=dict(rangeslider=dict(visible=True))
     )
     return fig
 
@@ -223,7 +253,8 @@ def plot_best_agent_selection(metrics_data: MetricsData) -> go.Figure:
         width=800,
         height=500,
         showlegend=True,
-        legend=dict(x=1.1, y=1)
+        legend=dict(x=1.1, y=1),
+        xaxis=dict(rangeslider=dict(visible=True))
     )
     return fig
 
@@ -251,7 +282,8 @@ def plot_distance_to_goal(metrics_data: MetricsData) -> go.Figure:
         xaxis_title='Time (seconds)',
         yaxis_title='Distance to Goal (meters)',
         width=800,
-        height=500
+        height=500,
+        xaxis=dict(rangeslider=dict(visible=True))
     )
     return fig
 
@@ -279,7 +311,8 @@ def plot_distance_to_closest_obstacle(metrics_data: MetricsData) -> go.Figure:
         xaxis_title='Time (seconds)',
         yaxis_title='Distance to Closest Point (meters)',
         width=800,
-        height=500
+        height=500,
+        xaxis=dict(rangeslider=dict(visible=True))
     )
     return fig
 

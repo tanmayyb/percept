@@ -4,7 +4,7 @@ percept_env/
 
 # data/stubs
 sample-data/
-plans/results/
+eval/results/
 
 # building
 .catkin_tools/

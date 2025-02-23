@@ -26,25 +26,25 @@ percept_config:
     # scene_type: "static" # static, or generated
     # static_scene_path: "assets/benchmark_scenes/hole_in_the_wall_easy.yaml"
   fields_config: 
-    k_cf_velocity: 0.001
-    k_cf_obstacle: 0.001
-    k_cf_goal: 0.001
-    k_cf_goalobstacle: 0.001
-    k_cf_random: 0.001
+    k_cf_velocity: 0.1
+    k_cf_obstacle: 0.1
+    k_cf_goal: 0.1
+    k_cf_goalobstacle: 0.1
+    k_cf_random: 0.1
     agent_radius: 0.05
     mass_radius: 0.05
     max_allowable_force: 10.0
     publish_force_vector: false
     show_processing_delay: false
   rviz_config:
-    show_rviz: true
+    show_rviz: false
     rviz_config_path: "rviz2/planning.rviz"
 
 planner_config:
   experiment_type: "oriented_pointmass"
   loop_frequency: 1000
   service_timeout: 5000
-  delta_t: 0.01
+  delta_t: 0.100
   max_prediction_steps: 10
   poses:
     start_pos:  [0.30, 0.0, 0.75]
@@ -63,7 +63,7 @@ planner_config:
           k_stiffness_angular: 0.01
           k_damping_linear: 4.0
           k_damping_angular: 0.04
-        velocity_heuristic_force:
+        goal_heuristic_force:
           k_gain: 1.0
           detect_shell_radius: 5.0
     - mass: 1.0
@@ -78,5 +78,33 @@ planner_config:
           k_damping_linear: 4.0
           k_damping_angular: 0.04
         obstacle_heuristic_force:
+          k_gain: 1.0
+          detect_shell_radius: 5.0
+    - mass: 1.0
+      radius: 0.05
+      max_velocity: 0.1
+      approach_distance: 0.25
+      forces:
+        attractor_force:
+          k_gain: 1.0
+          k_stiffness_linear: 1.0
+          k_stiffness_angular: 0.01
+          k_damping_linear: 4.0
+          k_damping_angular: 0.04
+        random_heuristic_force:
+          k_gain: 1.0
+          detect_shell_radius: 5.0
+    - mass: 1.0
+      radius: 0.05
+      max_velocity: 0.1
+      approach_distance: 0.25
+      forces:
+        attractor_force:
+          k_gain: 1.0
+          k_stiffness_linear: 1.0
+          k_stiffness_angular: 0.01
+          k_damping_linear: 4.0
+          k_damping_angular: 0.04
+        goalobstacle_heuristic_force:
           k_gain: 1.0
           detect_shell_radius: 5.0

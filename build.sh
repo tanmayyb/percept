@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# Ensure auto_generated_scene.yaml exists
+mkdir -p ./src/percept_core/assets/benchmark_scenes
+touch ./src/percept_core/assets/benchmark_scenes/auto_generated_scene.yaml
+
 source /opt/ros/humble/setup.bash
 conda activate percept_env
 colcon clean workspace -y

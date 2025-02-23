@@ -34,21 +34,16 @@ hole_height: 6.0
 
 
 
-def plot_scene(generated_assets, args):
+def plot_scene(assets, args):
     import plotly.graph_objects as go
     import plotly.io as pio
     pio.renderers.default = "browser"
     pio.templates.default = "plotly_white"
     
     # Combine all points from generated assets
-    all_points = []
-    for asset_data in generated_assets:
-        all_points.extend(asset_data)
-    
-    # Extract x, y, z coordinates
-    x = [point['position'][0] for point in all_points]
-    y = [point['position'][1] for point in all_points]
-    z = [point['position'][2] for point in all_points]
+    x = [point['position'][0] for point in assets]
+    y = [point['position'][1] for point in assets]
+    z = [point['position'][2] for point in assets]
     
     # Create 3D scatter plot
     marker_dict = dict(
@@ -81,12 +76,14 @@ def plot_scene(generated_assets, args):
     fig.show()
 
 
-def save_scene(generated_assets):
+def save_scene(assets):
     from pathlib import Path
     from ament_index_python.packages import get_package_share_directory
     filepath = Path(get_package_share_directory('percept')) / "assets/benchmark_scenes/auto_generated_scene.yaml"
     with open(filepath, 'w') as f:
-        yaml.dump(generated_assets, f)
+        f.write('# generated narrow passage\n')
+        data = {"obstacles": assets}
+        yaml.dump(data, f, default_flow_style=None)
     print(f"Scene saved to {filepath}")
 
 
@@ -102,17 +99,19 @@ def generate_narrow_passage(args):
         wall_generator = WallGenerator(scene_generation_params)
         generated_assets.append(wall_generator.generate_procedurally())
     
+    merged_assets = []
+    for asset_data in generated_assets:
+        merged_assets.extend(asset_data)
+
+
     if args.dump:
-        data = []
-        for asset_data in generated_assets:
-            data.extend(asset_data)
-        print(data)
+        print(merged_assets)
     
     if args.plot:
-        plot_scene(generated_assets, args)
+        plot_scene(merged_assets, args)
     
     if args.save:
-        save_scene(generated_assets)
+        save_scene(merged_assets)
     
     return
 

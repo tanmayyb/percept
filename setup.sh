@@ -16,6 +16,11 @@ source ~/.bashrc
 conda activate percept_env || { echo "Failed to activate conda environment"; exit 1; }
 pip install --upgrade pip
 
+# maniskill
+# https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/installation.html
+pip install --upgrade maniskill
+pip install torch torchvision torchaudio
+
 # install CUDA packages
 echo "Installing CUDA packages"
 conda install -y -c conda-forge cupy numba

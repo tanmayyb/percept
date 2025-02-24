@@ -9,6 +9,9 @@ pyyaml
 cupoch
 
 
+# debug
+pyglet==1.5.31 # for pointcloud visualization in mani_skill
+
 # data analysis
 ipykernel
 pandas

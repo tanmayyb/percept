@@ -1,7 +1,7 @@
 BASE_WORKLOAD_YAML="""
 metadata:
   created_at: ""
-  plan_name: "25-02-24_np_hf_k_sweep_r2"
+  plan_name: "250224_np_hf_k_sweep_r2"
   label: ""
   tags:
     - "narrow_passage"
@@ -49,7 +49,7 @@ planner_config:
   loop_frequency: 1000
   service_timeout: 5000
   delta_t: 0.010
-  max_prediction_steps: 10
+  max_prediction_steps: 100
   planning_frequency: 100
   agent_switch_factor: 0.9
   path_length_cost_weight: 1.0
@@ -99,6 +99,7 @@ from copy import deepcopy
 from yaml.representer import Representer
 from collections import OrderedDict
 import numpy as np
+import datetime
 # Add custom representer to maintain dictionary order
 def ordered_dict_representer(dumper, data):
     return dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
@@ -126,7 +127,7 @@ def _generate_procedural_configs(base_workload_config:dict):
     configs = {}
     heuristics = [
         "velocity_heuristic_force",
-        "goal_heuristic_force"
+        "goal_heuristic_force",
         "obstacle_heuristic_force",
         "goalobstacle_heuristic_force", 
     ]
@@ -136,6 +137,7 @@ def _generate_procedural_configs(base_workload_config:dict):
     base_workload_config["planner_config"]["agents"] = []
 
     for heuristic in heuristics:
+        print(heuristic)
         # Create agent config
         agent = yaml.safe_load(PROCEDURAL_AGENT_YAML)
         agent["forces"][heuristic] = {
@@ -158,6 +160,7 @@ def _generate_procedural_configs(base_workload_config:dict):
             config["metadata"]["info"] = f"Benchmark k-gain values for {heuristic}"
             config["metadata"]["tags"].append(heuristic)
             config["metadata"]["label"] = label
+            config["metadata"]["created_at"] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             configs[label] = config
 
     return configs

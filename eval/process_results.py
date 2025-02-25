@@ -326,10 +326,15 @@ class MetricsReader:
 
     def plot_scene(self):
         # Build agent path coordinates and timestamps.
-        x_coords = [pose['position']['x'] for pose in self.agent_poses]
-        y_coords = [pose['position']['y'] for pose in self.agent_poses]
-        z_coords = [pose['position']['z'] for pose in self.agent_poses]
-        timestamps = [pose['timestamp'] - self.info['experiment_start_timestamp'] for pose in self.agent_poses]
+        x_coords = []
+        y_coords = []
+        z_coords = []
+        timestamps = []
+        for i, row in self.agent_poses.iterrows():
+            x_coords.append(row['position']['x'])
+            y_coords.append(row['position']['y'])
+            z_coords.append(row['position']['z'])
+            timestamps.append(row['timestamp'] - self.info['experiment_start_timestamp'])
 
         # Extract pointcloud coordinates (assuming one pointcloud record).
         points = self.pointclouds.iloc[0]['points']
@@ -530,7 +535,7 @@ def main():
         print(e)
         return
 
-    reader.get_summary()
+    reader.print_stats()
 
     if args.plot:
         reader.plot_agent_planning_time().show()

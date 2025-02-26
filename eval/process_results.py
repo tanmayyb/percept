@@ -134,123 +134,98 @@ class MetricsReader:
         else:
             return True
 
-    
     def process_info_and_analysis(self):
-        # base info
-        label = self.workload_config['metadata']['label']
         start_time = time.time()
-        pointcloud = self.pointclouds.iloc[0]['points']
+        label = self.workload_config['metadata']['label']
+        # Convert pointcloud to a NumPy array (shape: [M, 3])
+        pointcloud = np.array(self.pointclouds.iloc[0]['points'])
         num_agents = len(self.workload_config['planner_config']['agents'])
-        detection_shell_radius = {f"agent_{i+1}": next(v for k, v in agent['forces'].items() if 'heuristic_force' in k)['detect_shell_radius'] for i, agent in enumerate(self.workload_config['planner_config']['agents'])}
+        detection_shell_radius = {
+            f"agent_{i+1}": next(v for k, v in agent['forces'].items() if 'heuristic_force' in k)['detect_shell_radius']
+            for i, agent in enumerate(self.workload_config['planner_config']['agents'])
+        }
 
-        # derive metrics
-        timestamps = []
-        agent_positions = []
-        distances_to_obstacles = []
-        distance_to_target = []
-        min_distances_to_obstacles = []
-        max_distances_to_obstacles = []
-        min_distances_to_target = float('inf')
-        min_distances_to_target_timestamp = float('-inf')
-        num_obstacles = len(pointcloud)
-        motion_start_timestamp = float('-inf')
-        motion_start_pos = None
-        path_length = 0.0
-        last_agent_position = None
-        experiment_start_pos = np.array([
-            self.agent_poses.iloc[0]['position']['x'], 
-            self.agent_poses.iloc[0]['position']['y'], 
-            self.agent_poses.iloc[0]['position']['z']
-        ])
+        # Vectorize extraction of agent and target positions, and timestamps.
+        # Each "position" field is a dict with keys 'x', 'y', 'z'
+        agent_positions = np.array([[pos['x'], pos['y'], pos['z']] for pos in self.agent_poses['position']])
+        target_positions = np.array([[pos['x'], pos['y'], pos['z']] for pos in self.target_poses['position']])
+        timestamps = self.agent_poses['timestamp'].to_numpy()
 
-        num_collisions = 0
-        collision_timestamps = []
-        collision_indices = []
+        # Compute distance to target for each pose.
+        distance_to_target = np.linalg.norm(agent_positions - target_positions, axis=1)
+        min_idx = np.argmin(distance_to_target)
+        min_distances_to_target = distance_to_target[min_idx]
+        min_distances_to_target_timestamp = timestamps[min_idx]
 
-        agent_switches = 0
-        agent_residency = {}
+        # Compute pairwise distances from each agent position to every point in the pointcloud.
+        # This yields an array of shape (N, M) where N = number of agent poses and M = number of points.
+        dists = np.linalg.norm(agent_positions[:, None, :] - pointcloud[None, :, :], axis=2)
+        distances_to_obstacles = dists  # Already in the desired array-of-arrays form.
+        min_distances_to_obstacles = dists.min(axis=1)
+        max_distances_to_obstacles = dists.max(axis=1)
 
+        # Determine when the agent begins to move (i.e. when the position differs from the experiment start by >0.001)
+        experiment_start_pos = agent_positions[0]
+        norms_from_start = np.linalg.norm(agent_positions - experiment_start_pos, axis=1)
+        motion_indices = np.where(norms_from_start > 0.001)[0]
+        if motion_indices.size > 0:
+            motion_start_index = motion_indices[0]
+            motion_start_pos = agent_positions[motion_start_index]
+            motion_start_timestamp = timestamps[motion_start_index]
+            # Compute the path length after motion has begun.
+            path_length = np.sum(np.linalg.norm(np.diff(agent_positions[motion_start_index:], axis=0), axis=1))
+        else:
+            motion_start_index = None
+            motion_start_pos = None
+            motion_start_timestamp = timestamps[0]
+            path_length = 0.0
 
+        # Collision detection (vectorized)
+        collision_threshold = self.agent_radius + self.mass_radius
+        collision_mask = dists < collision_threshold
+        num_collisions = int(collision_mask.sum())
+        # For each agent pose, repeat the timestamp for every colliding point.
+        collision_timestamps = np.concatenate([
+            np.full(np.count_nonzero(collision_mask[i]), ts)
+            for i, ts in enumerate(timestamps)
+        ]) if len(timestamps) > 0 else np.array([])
+        # Build collision_indices: for each agent pose, add its index repeated once per point in the pointcloud.
+        collision_indices = np.repeat(np.arange(len(timestamps)), len(pointcloud))
 
-        for i, ((_, agent_pose_row), (_, target_pose_row)) in enumerate(zip(self.agent_poses.iterrows(), 
-                                                                            self.target_poses.iterrows())):
-            agent_position = np.array([
-                agent_pose_row['position']['x'], 
-                agent_pose_row['position']['y'], 
-                agent_pose_row['position']['z']
-            ])
-            target_position = np.array([
-                target_pose_row['position']['x'], 
-                target_pose_row['position']['y'], 
-                target_pose_row['position']['z']
-            ])
-            timestamps.append(agent_pose_row['timestamp'])
-            agent_positions.append(agent_position)
-            obs_distances = np.linalg.norm(pointcloud - agent_position, axis=1)
-            distances_to_obstacles.append(obs_distances)
-            min_distances_to_obstacles.append(np.min(obs_distances))
-            max_distances_to_obstacles.append(np.max(obs_distances))
-            distance_to_target.append(np.linalg.norm(agent_position - target_position))
-            if min_distances_to_target > np.linalg.norm(agent_position - target_position):
-                min_distances_to_target = np.linalg.norm(agent_position - target_position)
-                min_distances_to_target_timestamp = agent_pose_row['timestamp']
-            if motion_start_pos is None:
-                if np.linalg.norm(agent_position - experiment_start_pos) > 0.001:
-                    motion_start_pos = agent_position
-                    motion_start_timestamp = agent_pose_row['timestamp']
-            else:
-                path_length += np.linalg.norm(agent_position - last_agent_position)
-
-            # check for collisions
-            for point in pointcloud:
-                if np.linalg.norm(agent_position - point) < self.agent_radius + self.mass_radius:
-                    num_collisions += 1
-                    collision_timestamps.append(agent_pose_row['timestamp'])
-                collision_indices.append(i)
-
-            last_agent_position = agent_position # update last agent position
-
-
-        # Calculate agent switches and residency times
+        # Calculate agent switches and residency times.
         current_agent = None
         last_timestamp = None
-        for i, row in self.agent_planning_times.iterrows():
+        agent_switches = 0
+        agent_residency = {}
+        for _, row in self.agent_planning_times.iterrows():
             agent_id = f"agent_{row['agent_id']}"
-            timestamp = row['timestamp']
-            
+            ts = row['timestamp']
             if current_agent is None:
                 current_agent = agent_id
-                last_timestamp = timestamp
+                last_timestamp = ts
                 agent_residency[agent_id] = 0.0
             elif agent_id != current_agent:
                 agent_switches += 1
-                # Add residency time for previous agent
-                agent_residency[current_agent] += timestamp - last_timestamp
-                # Set up next agent
+                agent_residency[current_agent] += ts - last_timestamp
                 if agent_id not in agent_residency:
                     agent_residency[agent_id] = 0.0
                 current_agent = agent_id
-                last_timestamp = timestamp
-        # Add final agent's residency time
+                last_timestamp = ts
         if current_agent is not None and last_timestamp is not None:
-            agent_residency[current_agent] += self.agent_planning_times['timestamp'].iloc[-1] - self.agent_planning_times['timestamp'].iloc[0]
-            
-        # Calculate percentages
-        total_time = self.agent_planning_times['timestamp'].iloc[-1] - self.agent_planning_times['timestamp'].iloc[0]
-        agent_residency_pct = {agent: (time/total_time)*100 for agent, time in agent_residency.items()}
+            agent_residency[current_agent] += (
+                self.agent_planning_times['timestamp'].iloc[-1]
+                - self.agent_planning_times['timestamp'].iloc[0]
+            )
+        total_time = (
+            self.agent_planning_times['timestamp'].iloc[-1]
+            - self.agent_planning_times['timestamp'].iloc[0]
+        )
+        agent_residency_pct = {agent: (t / total_time) * 100 for agent, t in agent_residency.items()}
 
-        agent_positions = np.array(agent_positions)
-        distances_to_obstacles = np.array(distances_to_obstacles)
-        min_distances_to_obstacles = np.array(min_distances_to_obstacles)
-        max_distances_to_obstacles = np.array(max_distances_to_obstacles)
-        distance_to_target = np.array(distance_to_target)
         average_planning_time = np.mean(self.agent_planning_times['planning_time'].iloc[1:])
-        collision_timestamps = np.array(collision_timestamps)
-        collision_indices = np.array(collision_indices)
-        # timestamps
-        timestamps = np.array(timestamps)
-        experiment_start_timestamp = np.min(timestamps)
-        experiment_end_timestamp = np.max(timestamps)
+
+        experiment_start_timestamp = timestamps.min()
+        experiment_end_timestamp = timestamps.max()
         elapsed_experiment_runtime = experiment_end_timestamp - experiment_start_timestamp
         elapsed_motion_runtime = min_distances_to_target_timestamp - motion_start_timestamp
 
@@ -263,7 +238,7 @@ class MetricsReader:
             'success': str(success),
             'timestamps': timestamps,
             'num_agents': num_agents,
-            'num_obstacles': num_obstacles,
+            'num_obstacles': len(pointcloud),
             'num_collisions': num_collisions,
             'collision_timestamps': collision_timestamps,
             'collision_indices': collision_indices,
@@ -286,6 +261,8 @@ class MetricsReader:
             'min_distances_to_target_timestamp': min_distances_to_target_timestamp,
             'average_planning_time': average_planning_time,
         }
+
+
     def format_stats(self):
         stats = {}
         for key, value in self.info.items():

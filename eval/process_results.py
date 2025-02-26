@@ -6,120 +6,315 @@ import plotly.io as pio
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from dataclasses import dataclass
-from typing import List, Dict
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
+import time
 
 pio.templates.default = "plotly_white"
 pio.renderers.default = "browser"
 
-@dataclass
-class MetricsData:
-    filename: str
-    log: List[Dict]
-    workload_config: dict
-    agent_poses: List[Dict]
-    target_poses: List[Dict]
-    pointclouds: List[Dict]
-    start_timestamp: float
-    end_timestamp: float
-    elapsed_time: float
-    start_pos: List[float]
-    goal_pos: List[float]
-    start_orientation: List[float]
-    goal_orientation: List[float]
-    agent_planning_time_list: List[Dict]
-    best_agent_list: List[Dict]
+class MetricsReader:
+    def __init__(self, filepath: str, success_time_limit: float = None, acceptable_min_distances_to_target: float = None):
+        self.filepath = Path(filepath) if not isinstance(filepath, Path) else filepath
+        if not self.filepath.exists():
+            raise FileNotFoundError(f"Error: File '{self.filepath}' does not exist!")
+        self.success_time_limit = success_time_limit
+        self.acceptable_min_distances_to_target = acceptable_min_distances_to_target
+        self._load_data()
+        
+    def _load_data(self):
+        with open(self.filepath, 'r') as file:
+            documents = list(yaml.safe_load_all(file))
+        self.log = documents
+
+        # read from config
+        workload_config = documents[0]['workload_config']
+        self.workload_config = workload_config
+        poses = workload_config['planner_config']['poses']
+        self.start_pos = poses['start_pos']
+        self.goal_pos = poses['goal_pos']
+        self.start_orientation = poses['start_orientation']
+        self.goal_orientation = poses['goal_orientation']
+        self.agent_radius = workload_config['percept_config']['fields_config']['agent_radius']
+        self.mass_radius = workload_config['percept_config']['fields_config']['mass_radius']
+
+        # read from records
+        self.agent_poses = []
+        self.target_poses = []
+        self.pointclouds = []
+        self.best_agent = []
+        self.agent_planning_times = []
+
+        def process_record(record):
+            if record is None:
+                return None
+            result = {
+                'timestamp': record.get('timestamp'),
+                'data': None,
+                'type': record.get('type', '')
+            }
+            if result['type'] == 'agent_pose':
+                result['data'] = record
+            elif result['type'] == 'target_pose':
+                result['data'] = record
+            elif result['type'] == 'pointcloud':
+                result['data'] = record
+            elif result['type'] == 'best_agent_name':
+                result['data'] = self._parse_best_agent_record(record)
+            elif result['type'] == 'agent_planning_time':
+                result['data'] = record
+            return result
+
+        # Process records in parallel
+        with ThreadPoolExecutor() as executor:
+            futures = list(tqdm(
+                executor.map(process_record, documents[1:]),
+                total=len(documents[1:]),
+                desc="Processing records"
+            ))
+
+        # Collect results
+        for result in futures:
+            if result is not None:                
+                if result['data'] is not None:
+                    if result['type'] == 'agent_pose':
+                        self.agent_poses.append(result['data'])
+                    elif result['type'] == 'target_pose':
+                        self.target_poses.append(result['data'])
+                    elif result['type'] == 'pointcloud':
+                        self.pointclouds.append(result['data'])
+                    elif result['type'] == 'best_agent_name':
+                        self.best_agent.append(result['data'])
+                    elif result['type'] == 'agent_planning_time':
+                        self.agent_planning_times.append(result['data'])
+
+        # convert to pandas dataframe
+        self.filename = self.filepath.name
+        self.agent_poses = pd.DataFrame(self.agent_poses)
+        self.target_poses = pd.DataFrame(self.target_poses)
+        self.pointclouds = pd.DataFrame(self.pointclouds)
+        self.best_agent = pd.DataFrame(self.best_agent)
+        self.agent_planning_times = pd.DataFrame(self.agent_planning_times)
+        self.info = None
+        self.process_info_and_analysis()
+
 
     @staticmethod
-    def _parse_best_agent_record(record: Dict):
-        # Extracts integer agent id from best_agent_name field
+    def _parse_best_agent_record(record: dict):
+        # Extract the integer agent id from the best_agent_name field.
         return {
             'timestamp': record['timestamp'],
             'agent_id': int(record['best_agent_name'].split('/')[-1].replace('agent_', '')),
             'type': 'best_agent_name'
         }
-    
-    @classmethod
-    def from_yaml(cls, filepath: Path):
-        with open(filepath, 'r') as file:
-            documents = list(yaml.safe_load_all(file))
 
-        agent_poses = []
-        target_poses = []
-        pointclouds = []
-        best_agent_list = []
-        agent_planning_time_list = []
-        start_timestamp = float('inf')
-        end_timestamp = float('-inf')
-        
-        for record in documents[1:]:
-            if record is not None:
-                if 'timestamp' in record:
-                    start_timestamp = min(start_timestamp, record['timestamp'])
-                    end_timestamp = max(end_timestamp, record['timestamp'])
-                    
-                record_type = record.get('type', '')
-                if record_type == 'agent_pose':
-                    agent_poses.append(record)
-                elif record_type == 'target_pose':
-                    target_poses.append(record)
-                elif record_type == 'pointcloud':
-                    pointclouds.append(record)
-                elif record_type == 'best_agent_name':
-                    best_agent_list.append(cls._parse_best_agent_record(record))
-                elif record_type == 'agent_planning_time':
-                    agent_planning_time_list.append(record)
-        
-        elapsed_time = end_timestamp - start_timestamp
-        workload_config = documents[0]['workload_config']
-        poses = workload_config['planner_config']['poses']
-        
-        return cls(
-            filename=filepath.name,
-            log=documents,
-            workload_config=workload_config,
-            agent_poses=agent_poses,
-            target_poses=target_poses,
-            pointclouds=pointclouds,
-            start_timestamp=start_timestamp,
-            end_timestamp=end_timestamp,
-            elapsed_time=elapsed_time,
-            start_pos=poses['start_pos'],
-            goal_pos=poses['goal_pos'],
-            start_orientation=poses['start_orientation'],
-            goal_orientation=poses['goal_orientation'],
-            agent_planning_time_list=agent_planning_time_list,
-            best_agent_list=best_agent_list
+
+    def _update_2d_layout(self, fig, title, xaxis_title, yaxis_title, extra=None):
+        layout = dict(
+            title=title,
+            xaxis_title=xaxis_title,
+            yaxis_title=yaxis_title,
+            width=800,
+            height=500,
+            xaxis=dict(rangeslider=dict(visible=True))
         )
+        if extra:
+            layout.update(extra)
+        fig.update_layout(**layout)
+        return fig
     
-    def get_summary(self):
-        print('Elapsed Time:', self.elapsed_time)
-        print('Start Position:', self.start_pos)
-        print('Goal Position:', self.goal_pos)
-        print('Start Orientation:', self.start_orientation)
-        print('Goal Orientation:', self.goal_orientation)
+    def success_criteria(self, num_collisions, elapsed_motion_runtime, min_distances_to_target):
+        time_limit = self.success_time_limit
+        acceptable_min_distances_to_target = self.acceptable_min_distances_to_target
+        # criteria
+        if num_collisions > 0 \
+            or (time_limit is not None and elapsed_motion_runtime > time_limit) \
+            or (acceptable_min_distances_to_target is not None and min_distances_to_target > acceptable_min_distances_to_target):
+            return False
+        else:
+            return True
+
+    def process_info_and_analysis(self):
+        start_time = time.time()
+        label = self.workload_config['metadata']['label']
+        # Convert pointcloud to a NumPy array (shape: [M, 3])
+        pointcloud = np.array(self.pointclouds.iloc[0]['points'])
+        num_agents = len(self.workload_config['planner_config']['agents'])
+        detection_shell_radius = {
+            f"agent_{i+1}": next(v for k, v in agent['forces'].items() if 'heuristic_force' in k)['detect_shell_radius']
+            for i, agent in enumerate(self.workload_config['planner_config']['agents'])
+        }
+
+        # Vectorize extraction of agent and target positions, and timestamps.
+        # Each "position" field is a dict with keys 'x', 'y', 'z'
+        agent_positions = np.array([[pos['x'], pos['y'], pos['z']] for pos in self.agent_poses['position']])
+        target_positions = np.array([[pos['x'], pos['y'], pos['z']] for pos in self.target_poses['position']])
+        timestamps = self.agent_poses['timestamp'].to_numpy()
+
+        # Compute distance to target for each pose.
+        distance_to_target = np.linalg.norm(agent_positions - target_positions, axis=1)
+        min_idx = np.argmin(distance_to_target)
+        min_distances_to_target = distance_to_target[min_idx]
+        min_distances_to_target_timestamp = timestamps[min_idx]
+
+        # Compute pairwise distances from each agent position to every point in the pointcloud.
+        # This yields an array of shape (N, M) where N = number of agent poses and M = number of points.
+        dists = np.linalg.norm(agent_positions[:, None, :] - pointcloud[None, :, :], axis=2)
+        distances_to_obstacles = dists  # Already in the desired array-of-arrays form.
+        min_distances_to_obstacles = dists.min(axis=1)
+        max_distances_to_obstacles = dists.max(axis=1)
+
+        # Determine when the agent begins to move (i.e. when the position differs from the experiment start by >0.001)
+        experiment_start_pos = agent_positions[0]
+        norms_from_start = np.linalg.norm(agent_positions - experiment_start_pos, axis=1)
+        motion_indices = np.where(norms_from_start > 0.001)[0]
+        if motion_indices.size > 0:
+            motion_start_index = motion_indices[0]
+            motion_start_pos = agent_positions[motion_start_index]
+            motion_start_timestamp = timestamps[motion_start_index]
+            # Compute the path length after motion has begun.
+            path_length = np.sum(np.linalg.norm(np.diff(agent_positions[motion_start_index:], axis=0), axis=1))
+        else:
+            motion_start_index = None
+            motion_start_pos = None
+            motion_start_timestamp = timestamps[0]
+            path_length = 0.0
+
+        # Collision detection (vectorized)
+        collision_threshold = self.agent_radius + self.mass_radius
+        collision_mask = dists < collision_threshold
+        num_collisions = int(collision_mask.sum())
+        # For each agent pose, repeat the timestamp for every colliding point.
+        collision_timestamps = np.concatenate([
+            np.full(np.count_nonzero(collision_mask[i]), ts)
+            for i, ts in enumerate(timestamps)
+        ]) if len(timestamps) > 0 else np.array([])
+        # Build collision_indices: for each agent pose, add its index repeated once per point in the pointcloud.
+        collision_indices = np.repeat(np.arange(len(timestamps)), len(pointcloud))
+
+        # Calculate agent switches and residency times.
+        current_agent = None
+        last_timestamp = None
+        agent_switches = 0
+        agent_residency = {}
+        for _, row in self.agent_planning_times.iterrows():
+            agent_id = f"agent_{row['agent_id']}"
+            ts = row['timestamp']
+            if current_agent is None:
+                current_agent = agent_id
+                last_timestamp = ts
+                agent_residency[agent_id] = 0.0
+            elif agent_id != current_agent:
+                agent_switches += 1
+                agent_residency[current_agent] += ts - last_timestamp
+                if agent_id not in agent_residency:
+                    agent_residency[agent_id] = 0.0
+                current_agent = agent_id
+                last_timestamp = ts
+        if current_agent is not None and last_timestamp is not None:
+            agent_residency[current_agent] += (
+                self.agent_planning_times['timestamp'].iloc[-1]
+                - self.agent_planning_times['timestamp'].iloc[0]
+            )
+        total_time = (
+            self.agent_planning_times['timestamp'].iloc[-1]
+            - self.agent_planning_times['timestamp'].iloc[0]
+        )
+        agent_residency_pct = {agent: (t / total_time) * 100 for agent, t in agent_residency.items()}
+
+        average_planning_time = np.mean(self.agent_planning_times['planning_time'].iloc[1:])
+
+        experiment_start_timestamp = timestamps.min()
+        experiment_end_timestamp = timestamps.max()
+        elapsed_experiment_runtime = experiment_end_timestamp - experiment_start_timestamp
+        elapsed_motion_runtime = min_distances_to_target_timestamp - motion_start_timestamp
+
+        success = self.success_criteria(num_collisions, elapsed_motion_runtime, min_distances_to_target)
+
+        print(f"File: {self.filename} took {time.time() - start_time:.3f} seconds to process")
+
+        self.info = {
+            'label': label,
+            'success': str(success),
+            'timestamps': timestamps,
+            'num_agents': num_agents,
+            'num_obstacles': len(pointcloud),
+            'num_collisions': num_collisions,
+            'collision_timestamps': collision_timestamps,
+            'collision_indices': collision_indices,
+            'detection_shell_radius': detection_shell_radius,
+            'agent_switches': agent_switches,
+            'agent_residency_pct': agent_residency_pct,
+            'agent_positions': agent_positions,
+            'distances_to_obstacles': distances_to_obstacles,
+            'min_distances_to_obstacles': min_distances_to_obstacles,
+            'max_distances_to_obstacles': max_distances_to_obstacles,
+            'distance_to_target': distance_to_target,
+            'path_length': path_length,
+            'motion_start_timestamp': motion_start_timestamp,
+            'motion_start_pos': motion_start_pos,
+            'experiment_start_timestamp': experiment_start_timestamp,
+            'experiment_end_timestamp': experiment_end_timestamp,
+            'elapsed_experiment_runtime': elapsed_experiment_runtime,
+            'elapsed_motion_runtime': elapsed_motion_runtime,
+            'min_distances_to_target': min_distances_to_target,
+            'min_distances_to_target_timestamp': min_distances_to_target_timestamp,
+            'average_planning_time': average_planning_time,
+        }
 
 
-@dataclass
-class SceneVisualizer:
-    filename: str
-    agent_trace: go.Scatter3d
-    target_trace: go.Scatter3d
-    pointcloud_trace: go.Scatter3d
-    fig: go.Figure
+    def format_stats(self):
+        stats = {}
+        for key, value in self.info.items():
+            if isinstance(value, np.ndarray):
+                if key in ['timestamps', 'collision_timestamps', 'collision_indices']:
+                    continue
+                else:
+                    stats[key] = {
+                        'min': float(f"{float(np.min(value)):.3f}"),
+                        'max': float(f"{float(np.max(value)):.3f}"),
+                        'mean': float(f"{float(np.mean(value)):.3f}"), 
+                        'std': float(f"{float(np.std(value)):.3f}")
+                    }
+            elif isinstance(value, (int, float, np.float64, np.float32, np.int64, np.int32)):
+                stats[key] = float(f"{float(value):.3f}")
+            elif isinstance(value, dict):
+                # Handle nested dictionaries
+                stats[key] = {k: float(f"{float(v):.3f}") if isinstance(v, (int, float, np.float64, np.float32, np.int64, np.int32)) else v 
+                            for k, v in value.items()}
+            else:
+                stats[key] = value
+        return yaml.dump(stats, sort_keys=False, default_flow_style=False).split('\n')
 
-    @classmethod
-    def from_metrics_data(cls, metrics_data: MetricsData):
-        filename = metrics_data.filename
+    def print_stats(self):
+        print("\nExperiment Info:")
+        print("-" * 50)
+        print("\n".join(self.format_stats()))
+        print("-" * 50)
+
+    def save_stats(self):
+        output_path = self.filepath.parent / f"{self.filepath.stem}.stats"
+        with open(output_path, 'w') as f:
+            f.write("Experiment Info:\n")
+            f.write("-" * 50 + "\n")
+            f.write("\n".join(self.format_stats()))
+            f.write("\n" + "-" * 50)
         
-        # Build agent path coordinates and timestamps
-        x_coords = [pose['position']['x'] for pose in metrics_data.agent_poses]
-        y_coords = [pose['position']['y'] for pose in metrics_data.agent_poses]
-        z_coords = [pose['position']['z'] for pose in metrics_data.agent_poses]
-        timestamps = [pose['timestamp'] - metrics_data.start_timestamp for pose in metrics_data.agent_poses]
 
-        # Extract pointcloud coordinates (assuming one pointcloud record)
-        points = metrics_data.pointclouds[0]['points']
+    def plot_scene(self):
+        # Build agent path coordinates and timestamps.
+        x_coords = []
+        y_coords = []
+        z_coords = []
+        timestamps = []
+        for i, row in self.agent_poses.iterrows():
+            x_coords.append(row['position']['x'])
+            y_coords.append(row['position']['y'])
+            z_coords.append(row['position']['z'])
+            timestamps.append(row['timestamp'] - self.info['experiment_start_timestamp'])
+
+        # Extract pointcloud coordinates (assuming one pointcloud record).
+        points = self.pointclouds.iloc[0]['points']
         pointcloud_x, pointcloud_y, pointcloud_z = zip(*points)
 
         agent_trace = go.Scatter3d(
@@ -129,10 +324,10 @@ class SceneVisualizer:
             mode='lines+markers',
             marker=dict(
                 size=1,
-                color=timestamps,  # Color based on timestamps
+                color=timestamps,
                 colorscale='Turbo',
                 showscale=True,
-                colorbar=dict(title='Time (s)')  # Add colorbar title
+                colorbar=dict(title='Time (s)')
             ),
             line=dict(color='blue', width=2),
             name='Agent Path'
@@ -145,22 +340,19 @@ class SceneVisualizer:
             marker=dict(size=2, color='red', symbol='circle'),
             name='Pointcloud'
         )
-
-
-        # Create start and goal markers
+        # Create start and goal markers.
         start_marker = go.Scatter3d(
-            x=[metrics_data.start_pos[0]],
-            y=[metrics_data.start_pos[1]], 
-            z=[metrics_data.start_pos[2]],
+            x=[self.start_pos[0]],
+            y=[self.start_pos[1]],
+            z=[self.start_pos[2]],
             mode='markers',
             marker=dict(size=8, color='blue', symbol='diamond'),
             name='Start'
         )
-
         goal_marker = go.Scatter3d(
-            x=[metrics_data.goal_pos[0]],
-            y=[metrics_data.goal_pos[1]],
-            z=[metrics_data.goal_pos[2]], 
+            x=[self.goal_pos[0]],
+            y=[self.goal_pos[1]],
+            z=[self.goal_pos[2]],
             mode='markers',
             marker=dict(size=8, color='green', symbol='diamond'),
             name='Goal'
@@ -168,7 +360,7 @@ class SceneVisualizer:
         
         fig = go.Figure(data=[agent_trace, pointcloud_trace, start_marker, goal_marker])
         fig.update_layout(
-            title='Agent Path and Pointcloud Visualization: ' + filename,
+            title='Agent Path and Pointcloud Visualization: ' + self.filename,
             scene=dict(
                 xaxis_title='X Position',
                 yaxis_title='Y Position',
@@ -178,144 +370,120 @@ class SceneVisualizer:
             width=800,
             height=800
         )
-        
-        return cls(
-            filename=filename,
-            agent_trace=agent_trace,
-            target_trace=None,  # Not used in current implementation
-            pointcloud_trace=pointcloud_trace,
-            fig=fig
+        return fig
+
+    def plot_agent_planning_time(self):
+        df = self.agent_planning_times
+        y_values = df['planning_time']
+        q1 = y_values.quantile(0.05)
+        q3 = y_values.quantile(0.95)
+        y_max = q3 + (q3 - q1) * 1.5
+
+        fig = go.Figure()
+        for agent_id in df['agent_id'].unique():
+            agent_data = df[df['agent_id'] == agent_id]
+            fig.add_trace(go.Scattergl(
+                x=agent_data['timestamp'] - self.info['experiment_start_timestamp'],
+                y=agent_data['planning_time'],
+                mode='lines+markers',
+                name=f'Agent {agent_id}',
+                line=dict(shape='hv'),
+                marker=dict(size=4, opacity=0.6)
+            ))
+        self._update_2d_layout(
+            fig,
+            title='Agent Planning Time: ' + self.filename,
+            xaxis_title='Time (seconds)',
+            yaxis_title='Planning Time (seconds)',
+            extra={'yaxis': {'range': [0.0, y_max]}}
         )
-    
-    def show(self):
-        self.fig.show()
+        return fig
 
-
-def plot_agent_planning_time(metrics_data: MetricsData) -> go.Figure:
-    df = pd.DataFrame(metrics_data.agent_planning_time_list)
-    
-    # Calculate reasonable y-axis range using percentiles
-    y_values = df['planning_time']
-    q1 = y_values.quantile(0.05)  # 5th percentile
-    q3 = y_values.quantile(0.95)  # 95th percentile
-    y_max = q3 + (q3 - q1) * 1.5  # Upper bound using IQR method
-
-    fig = go.Figure()
-    for agent_id in df['agent_id'].unique():
-        agent_data = df[df['agent_id'] == agent_id]
-        fig.add_trace(go.Scattergl(
-            x=agent_data['timestamp'] - metrics_data.start_timestamp,
-            y=agent_data['planning_time'],
+    def plot_best_agent_selection(self):
+        df = self.best_agent
+        heuristic_mapping = {
+            agent_id + 1: f"{agent_id + 1}: {list(agent['forces'].keys())[1].split('_')[0]}"
+            for agent_id, agent in enumerate(self.workload_config['planner_config']['agents'])
+        }
+        df['heuristic'] = df['agent_id'].map(heuristic_mapping)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df['timestamp'] - self.info['experiment_start_timestamp'],
+            y=df['heuristic'],
             mode='lines+markers',
-            name=f'Agent {agent_id}',
-            line=dict(shape='hv'),
-            marker=dict(size=4, opacity=0.6)
+            name='Best Agent ID',
+            line=dict(shape='hv', color='blue', width=0.5),
+            marker=dict(size=2.5, color='blue')
         ))
-    fig.update_layout(
-        title='Agent Planning Time: ' + metrics_data.filename,
-        xaxis_title='Time (seconds)',
-        yaxis_title='Planning Time (seconds)',
-        yaxis=dict(range=[0.0, y_max]),  # Dynamic range
-        width=800,
-        height=500,
-        xaxis=dict(rangeslider=dict(visible=True))
-    )
-    return fig
+        self._update_2d_layout(
+            fig,
+            title='Best Agent Selection Over Time: ' + self.filename,
+            xaxis_title='Time (seconds)',
+            yaxis_title='Agent ID'
+        )
+        fig.update_layout(
+            yaxis=dict(
+                tickmode='linear',
+                dtick=1,
+                ticks='outside',
+                ticklen=5
+            ),
+            showlegend=True,
+            legend=dict(x=1.1, y=1)
+        )
+        return fig
 
+    def plot_distance_to_goal(self):
 
-def plot_best_agent_selection(metrics_data: MetricsData) -> go.Figure:
-    df = pd.DataFrame(metrics_data.best_agent_list)
-    # Map agent IDs to heuristic strings from workload config
-    heuristic_mapping = {
-        agent_id + 1: f"{agent_id + 1}: {list(agent['forces'].keys())[1].split('_')[0]}"
-        for agent_id, agent in enumerate(metrics_data.workload_config['planner_config']['agents'])
-    }
-    df['heuristic'] = df['agent_id'].map(heuristic_mapping)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df['timestamp'] - metrics_data.start_timestamp,
-        y=df['heuristic'],
-        mode='lines+markers',
-        name='Best Agent ID',
-        line=dict(shape='hv', color='blue', width=0.5),
-        marker=dict(size=2.5, color='blue')
-    ))
-    fig.update_layout(
-        title='Best Agent Selection Over Time: ' + metrics_data.filename,
-        xaxis_title='Time (seconds)',
-        yaxis=dict(
-            title='Agent ID',
-            tickmode='linear',
-            dtick=1,
-            ticks='outside',
-            ticklen=5
-        ),
-        width=800,
-        height=500,
-        showlegend=True,
-        legend=dict(x=1.1, y=1),
-        xaxis=dict(rangeslider=dict(visible=True))
-    )
-    return fig
+        timestamps = self.info['timestamps'] - self.info['experiment_start_timestamp']
+        distances = self.info['distance_to_target']
 
+        fig = go.Figure(data=go.Scatter(
+            x=timestamps,
+            y=distances,
+            mode='lines+markers',
+            name='Distance to Goal',
+            marker=dict(size=6, color='blue'),
+            line=dict(color='blue')
+        ))
+        self._update_2d_layout(
+            fig,
+            title='Distance to Goal Over Time: ' + self.filename,
+            xaxis_title='Time (seconds)',
+            yaxis_title='Distance to Goal (meters)'
+        )
+        return fig
 
-def plot_distance_to_goal(metrics_data: MetricsData) -> go.Figure:
-    # Vectorize agent positions and calculate distances to the goal
-    agent_positions = np.array([
-        [pose['position']['x'], pose['position']['y'], pose['position']['z']]
-        for pose in metrics_data.agent_poses
-    ])
-    goal_pos = np.array(metrics_data.goal_pos)
-    distances = np.linalg.norm(agent_positions - goal_pos, axis=1)
-    timestamps = np.array([pose['timestamp'] for pose in metrics_data.agent_poses]) - metrics_data.start_timestamp
+    def plot_distance_to_closest_obstacle(self):
+        pointcloud = self.pointclouds.iloc[0]['points']
+        timestamps = []
+        agent_positions = []
+        min_distances = []
 
-    fig = go.Figure(data=go.Scatter(
-        x=timestamps,
-        y=distances,
-        mode='lines+markers',
-        name='Distance to Goal',
-        marker=dict(size=6, color='blue'),
-        line=dict(color='blue')
-    ))
-    fig.update_layout(
-        title='Distance to Goal Over Time: ' + metrics_data.filename,
-        xaxis_title='Time (seconds)',
-        yaxis_title='Distance to Goal (meters)',
-        width=800,
-        height=500,
-        xaxis=dict(rangeslider=dict(visible=True))
-    )
-    return fig
+        for _, row in self.agent_poses.iterrows():
+            timestamps.append(row['timestamp'] - self.info['experiment_start_timestamp'])
+            agent_positions.append([row['position']['x'], row['position']['y'], row['position']['z']])
+            min_distances.append(np.min(np.linalg.norm(pointcloud - np.array(agent_positions[-1]), axis=1)))
 
-
-def plot_distance_to_closest_obstacle(metrics_data: MetricsData) -> go.Figure:
-    pointcloud = np.array(metrics_data.pointclouds[0]['points'])
-    timestamps = []
-    min_distances = []
-    for pose in metrics_data.agent_poses:
-        agent_pos = np.array([pose['position']['x'], pose['position']['y'], pose['position']['z']])
-        distances_to_points = np.linalg.norm(pointcloud - agent_pos, axis=1)
-        min_distances.append(np.min(distances_to_points))
-        timestamps.append(pose['timestamp'] - metrics_data.start_timestamp)
-    
-    fig = go.Figure(data=go.Scatter(
-        x=timestamps,
-        y=min_distances,
-        mode='lines+markers',
-        name='Distance to Closest Obstacle',
-        marker=dict(size=6, color='red'),
-        line=dict(color='red')
-    ))
-    fig.update_layout(
-        title='Distance to Closest Obstacle Over Time: ' + metrics_data.filename,
-        xaxis_title='Time (seconds)',
-        yaxis_title='Distance to Closest Point (meters)',
-        width=800,
-        height=500,
-        xaxis=dict(rangeslider=dict(visible=True))
-    )
-    return fig
-
+        timestamps = np.array(timestamps)
+        agent_positions = np.array(agent_positions) 
+        min_distances = np.array(min_distances)
+        
+        fig = go.Figure(data=go.Scatter(
+            x=timestamps,
+            y=min_distances,
+            mode='lines+markers',
+            name='Distance to Closest Obstacle',
+            marker=dict(size=6, color='red'),
+            line=dict(color='red')
+        ))
+        self._update_2d_layout(
+            fig,
+            title='Distance to Closest Obstacle Over Time: ' + self.filename,
+            xaxis_title='Time (seconds)',
+            yaxis_title='Distance to Closest Point (meters)'
+        )
+        return fig
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -334,32 +502,24 @@ def parse_args():
     )
     return parser.parse_args()
 
-
 def main():
     args = parse_args()
     filepath = Path(args.filepath) if Path(args.filepath).is_absolute() else Path('./eval/results/') / args.filepath
-    
-    if not filepath.exists():
-        print(f"Error: File '{filepath}' does not exist!")
-        return
-    
-    # Load and summarize metrics data
-    metrics_data = MetricsData.from_yaml(filepath)
-    metrics_data.get_summary()
-    
-    # Create scene visualizer instance
-    scene_visualizer = SceneVisualizer.from_metrics_data(metrics_data)
-    
-    # If the plot flag is set, show each figure
-    if args.plot:
-        plot_agent_planning_time(metrics_data).show()
-        plot_best_agent_selection(metrics_data).show()
-        plot_distance_to_goal(metrics_data).show()
-        plot_distance_to_closest_obstacle(metrics_data).show()
-        scene_visualizer.show()
 
+    try:
+        reader = MetricsReader(filepath)
+    except FileNotFoundError as e:
+        print(e)
+        return
+
+    reader.print_stats()
+
+    if args.plot:
+        reader.plot_agent_planning_time().show()
+        reader.plot_best_agent_selection().show()
+        reader.plot_distance_to_goal().show()
+        reader.plot_distance_to_closest_obstacle().show()
+        reader.plot_scene().show()
 
 if __name__ == "__main__":
     main()
-
-

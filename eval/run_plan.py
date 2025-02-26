@@ -69,21 +69,13 @@ def read_plan(plan_dir):
     
     return plan.get('workloads', [])
 
-def copy_logs(plan_dir):
-    # Create timestamped workload results directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    plan_dir = os.path.basename(plan_dir)
-    eval_dir = Path(os.path.dirname(__file__))
-    plan_results_dir = eval_dir / 'results' / plan_dir
-    os.makedirs(plan_results_dir, exist_ok=True)
-
-    # Copy log files with timestamp prefix
+def copy_logs(eval_dir, workload_log_dir, timestamp):
     for log_file in ['planner.log', 'percept.log']:
         src = eval_dir / 'results' / log_file
         if os.path.exists(src):
-            dst = plan_results_dir / f"{timestamp}_{log_file}"
+            dst = workload_log_dir / f"{timestamp}_{log_file}"
             shutil.copy2(src, dst) 
-    logging.info(f"Copied logs to {plan_results_dir}")
+    logging.info(f"Copied logs to {workload_log_dir}")
 
 def run_workload(workload_path, plan_dir, duration, enable_metrics):
     cmd = [
@@ -97,38 +89,59 @@ def run_workload(workload_path, plan_dir, duration, enable_metrics):
     logging.info(f"{yellow}Running workload: {workload_path}{reset}")
     logging.info(f"Command: {' '.join(cmd)}")
 
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        preexec_fn=os.setsid  # For Unix. On Windows use creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-    )
-
-    def sigint_handler(signum, frame):
-        logging.info(f"{yellow}User initiated SIGINT. Propagating SIGINT to the subprocess.{reset}")
-        os.killpg(os.getpgid(process.pid), signal.SIGINT)
-
-    old_handler = signal.signal(signal.SIGINT, sigint_handler)
+    # Create timestamped workload results directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    workload_name = os.path.splitext(os.path.basename(workload_path))[0]
+    eval_dir = Path(os.path.dirname(__file__))
+    plan_dir_name = os.path.basename(plan_dir)
+    workload_log_dir = eval_dir / 'results' / plan_dir_name / 'logs' / workload_name
+    os.makedirs(workload_log_dir, exist_ok=True)
     
-    try:
-        stdout, stderr = process.communicate()
-    except Exception as e:
-        logging.error(f"Exception while waiting for workload: {e}")
-        process.kill()
-        stdout, stderr = process.communicate()
-        return False
-    finally:
-        signal.signal(signal.SIGINT, old_handler)
+    # Create log file for subprocess output
+    output_log = workload_log_dir / f"{timestamp}_mp_eval.log"
+    with open(output_log, 'w') as log_file:
+        process = subprocess.Popen(
+            cmd,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,  # Redirect stderr to stdout
+            text=True,
+            preexec_fn=os.setsid
+        )
+
+        def sigint_handler(signum, frame):
+            logging.info(f"{yellow}User initiated SIGINT. Propagating SIGINT to the subprocess.{reset}")
+            os.killpg(os.getpgid(process.pid), signal.SIGINT)
+
+        old_handler = signal.signal(signal.SIGINT, sigint_handler)
+        
+        try:
+            start_time = time.time()
+            process.wait()  # Wait for process to complete
+            actual_duration = time.time() - start_time
+            
+        except Exception as e:
+            logging.error(f"Exception while waiting for workload: {e}")
+            process.kill()
+            return False
+        finally:
+            signal.signal(signal.SIGINT, old_handler)
 
     if process.returncode != 0:
         logging.error(f"Workload {workload_path} exited with code {process.returncode}")
-        logging.error(f"Output:\n{stdout}")
-        logging.error(f"Error:\n{stderr}")
+        with open(output_log, 'r') as f:
+            output = f.read()
+            logging.error(f"See detailed output in: {output_log}")
         return False
 
-    copy_logs(plan_dir)
-    logging.info(f"{green}Workload {workload_path} completed successfully.{reset}")    
+    copy_logs(eval_dir, workload_log_dir, timestamp)
+    # Check if workload ended significantly earlier than expected
+    if duration and actual_duration < duration * 0.9:  # 10% threshold
+        logging.warning(
+            f"{red}Workload completed in {actual_duration:.1f}s, "
+            f"significantly shorter than expected {duration:.1f}s{reset}"
+        )
+    else:
+        logging.info(f"{green}Workload {workload_path} completed successfully.{reset}")    
     return True
 
 def main():
@@ -158,7 +171,7 @@ def main():
                     successful_workloads += 1
                 if args.wait > 0 and i < len(workloads) - 1:
                     logging.info(f"Waiting {args.wait} seconds before next workload...")
-                    logging.info(f"{yellow}You can cancel the wait by pressing Ctrl+C{reset}")
+                    logging.info(f"You can cancel the wait by pressing Ctrl+C")
                     try:
                         time.sleep(args.wait)
                     except KeyboardInterrupt:

@@ -64,14 +64,8 @@ planner_config:
 
 
 PROCEDURAL_FIELDS_CONFIG = """
-k_cf_velocity: 0.001
-k_cf_obstacle: 0.001
-k_cf_goal: 0.001
-k_cf_goalobstacle: 0.001
-k_cf_random: 0.001
 agent_radius: 0.05
 mass_radius: 0.05
-max_allowable_force: 20.0
 publish_force_vector: false
 show_processing_delay: false
 show_requests: false

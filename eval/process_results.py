@@ -44,7 +44,7 @@ class MetricsReader:
         self.pointclouds = []
         self.best_agent = []
         self.agent_planning_times = []
-
+        self.agent_costs = []
         def process_record(record):
             if record is None:
                 return None
@@ -87,7 +87,8 @@ class MetricsReader:
                         self.best_agent.append(result['data'])
                     elif result['type'] == 'agent_planning_time':
                         self.agent_planning_times.append(result['data'])
-
+                    elif result['type'] == 'agent_cost':
+                        self.agent_costs.append(result['data'])
         # convert to pandas dataframe
         self.filename = self.filepath.name
         self.agent_poses = pd.DataFrame(self.agent_poses)

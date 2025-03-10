@@ -67,7 +67,7 @@ def read_plan(plan_dir):
     with open(plan_file, 'r') as f:
         plan = yaml.safe_load(f)
     
-    return plan.get('workloads', [])
+    return plan.get('workloads', []), plan.get('runtime', [])
 
 def copy_logs(eval_dir, workload_log_dir, timestamp):
     for log_file in ['planner.log', 'percept.log']:
@@ -147,7 +147,7 @@ def run_workload(workload_path, plan_dir, duration, enable_metrics):
 def main():
     parser = argparse.ArgumentParser(description='Run a plan of workloads')
     parser.add_argument('plan_dir', type=str, help='Directory containing the run.plan file')
-    parser.add_argument('--duration', type=float, help='Duration for each workload in seconds')
+    parser.add_argument('--duration', type=float, default=60.0, help='Duration for each workload in seconds, 0.0 means dynamic loading')
     parser.add_argument('--enable_metrics', action='store_true', help='Enable metrics collection')
     parser.add_argument('--wait', type=float, default=10.0, help='Wait time between workloads in seconds')
     args = parser.parse_args()
@@ -160,14 +160,21 @@ def main():
     logging.info(f"Log file: {log_file}")
 
     try:
-        workloads = read_plan(plan_dir)
+        workloads, runtimes = read_plan(plan_dir)
+        if args.duration == 0.0 and len(runtimes) > len(workloads):
+            logging.error(f"Number of runtimes ({len(runtimes)}) is greater than the number of workloads ({len(workloads)}). Cannot  implement runtime with dynamic loading!")
+            return 1
         logging.info(f"Found {len(workloads)} workloads to execute")
 
         successful_workloads = 0
         # Explicitly set the output stream to sys.stderr if desired.
         with tqdm(total=len(workloads), desc="Running workloads", position=0, leave=True, file=sys.stderr) as pbar:
             for i, workload in enumerate(workloads):
-                if run_workload(workload, plan_dir, args.duration, args.enable_metrics):
+                if args.duration == 0.0:
+                    duration = runtimes[i]
+                else:
+                    duration = args.duration
+                if run_workload(workload, plan_dir, duration, args.enable_metrics):
                     successful_workloads += 1
                 if args.wait > 0 and i < len(workloads) - 1:
                     logging.info(f"Waiting {args.wait} seconds before next workload...")

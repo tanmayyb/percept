@@ -1,5 +1,0 @@
-workloads:
-- eval/plans/25-02-23_narrow_passage_agents_ablation/workload_0_obstacle_heuristic_force.yaml
-- eval/plans/25-02-23_narrow_passage_agents_ablation/workload_1_goalobstacle_heuristic_force.yaml
-- eval/plans/25-02-23_narrow_passage_agents_ablation/workload_2_velocity_heuristic_force.yaml
-- eval/plans/25-02-23_narrow_passage_agents_ablation/workload_3_goal_heuristic_force.yaml

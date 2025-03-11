@@ -26,7 +26,7 @@ from mp_eval.classes.workload import *
 PLAN_NAME = "table2_r1"
 EXPERIMENT_TYPE = "oriented_pointmass"
 RVIZ_CONFIG_PATH = "rviz2/planning.rviz"
-SHOW_RVIZ = True
+SHOW_RVIZ = False
 SHOW_PROCESSING_DELAY = False
 SHOW_REQUESTS = False
 DELIMETER = "-"
@@ -57,7 +57,10 @@ FORCE_CONFIGS = {
 	},
 	"velocity_heuristic_force": {
 		"k_gain": 1.0,
-		"k_force": 1.0e-1,
+		# "k_force": 5.0e-2,
+
+		"k_force": 2.5e-3,
+
 		"detect_shell_radius": 20.0,
 		"max_allowable_force": 40.0
 	}
@@ -74,7 +77,7 @@ AGENTS_CONFIGS = [
 	)
 ]
 
-PARAMS_KEYS = ['label', 'tags', 'service_timeout', 'max_prediction_steps', 'scene_params', 'use_cpu', 'poses']
+PARAMS_KEYS = ['label', 'tags', 'service_timeout', 'max_prediction_steps', 'scene_params', 'use_cpu', 'poses', 'agents_config']
 
 
 # Add custom representer to maintain dictionary order
@@ -83,8 +86,17 @@ def ordered_dict_representer(dumper, data):
 yaml.add_representer(OrderedDict, ordered_dict_representer)
 
 
+def _generate_agents_config(k_force):
+	force_configs = deepcopy(FORCE_CONFIGS)
+	agents_config = deepcopy(AGENTS_CONFIGS)
+	force_configs['velocity_heuristic_force']['k_force'] = k_force
+	agents_config[0].force_configs = force_configs
+	return agents_config
+
+
+
 def _generate_scene_params():
-	scenes = []
+	scenes = {}
 
 	narrow_passage = {
 		"scene_generation_type": "narrow_passage",
@@ -96,7 +108,7 @@ def _generate_scene_params():
 				"wall_height": 4.0,
 				"wall_center_i": 0.0,
 				"wall_center_j": 0.0,
-				"wall_offset_k": 0.5,
+				"wall_offset_k": 0.75,
 				"include_hole": True,
 				"hole_center_x": -0.25,
 				"hole_center_y": 0.0,
@@ -110,7 +122,7 @@ def _generate_scene_params():
 				"wall_height": 4.0,
 				"wall_center_i": 0.0,
 				"wall_center_j": 0.0,
-				"wall_offset_k": 1.0,
+				"wall_offset_k": 1.50,
 				"include_hole": True,
 				"hole_center_x": 0.25,
 				"hole_center_y": 0.0,
@@ -120,7 +132,46 @@ def _generate_scene_params():
 		}
 	}
 
-	scenes.append(narrow_passage)
+	cluttered1k = {
+		"scene_generation_type": "cluttered",
+		"scene_generation_params": {
+			"num_obstacles": 1000,
+			"seed": 42,
+			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
+			"include_deadzones": True,
+			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
+			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
+		}
+	}
+
+	cluttered5k = {
+		"scene_generation_type": "cluttered",
+		"scene_generation_params": {
+			"num_obstacles": 5000,
+			"seed": 42,
+			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
+			"include_deadzones": True,
+			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
+			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
+		}
+	}
+
+	cluttered10k = {
+		"scene_generation_type": "cluttered",
+		"scene_generation_params": {
+			"num_obstacles": 10000,
+			"seed": 42,
+			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
+			"include_deadzones": True,
+			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
+			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
+		}
+	}
+
+	scenes[0] = narrow_passage
+	scenes[1] = cluttered1k
+	scenes[2] = cluttered5k
+	scenes[3] = cluttered10k
 
 	return scenes
 
@@ -137,7 +188,7 @@ def _generate_poses():
 
 	for i in range(num_poses):
 		start_pos = [random.uniform(-rangex, rangex), 0.0, random.uniform(-rangez, rangez)]
-		goal_pos = [random.uniform(-rangex, rangex), 2.0, random.uniform(-rangez, rangez)]
+		goal_pos = [random.uniform(-rangex, rangex), 2.25, random.uniform(-rangez, rangez)]
 
 		pose = {
 			"start_pos": start_pos,
@@ -154,32 +205,40 @@ def _generate_poses():
 def _generate_procedurally():
 	all_params = OrderedDict()
 	workload_id = 1
-	param1 = _generate_scene_params()
-	param2 = [False, True] # use_cpu
-	param3 = _generate_poses()
-	param4 = [(10000, 60.0), (10000, 120.0)] # timeout, runtime
+	scenes = _generate_scene_params()
+	cpu_options = {0: False, 1: True}
+	planning_windows = {0: 50, 1: 100, 2: 150}
+	poses = _generate_poses()
+	
+	k_force = [2.5e-3, 5.0e-2, 5.0e-2, 5.0e-2]
 
-	for i, scene_params in enumerate(param1):
-		for j, use_cpu in enumerate(param2):
-			for k, pose in enumerate(param3):
-				label = f"scene_{i}{DELIMETER}use_cpu_{j}{DELIMETER}pose_{k}"
-				params = {}
-				params['label'] = label
-				params['tags'] = [
-					PLAN_NAME,
-					f"scene_{i}",
-					f"use_cpu_{j}",
-					f"pose_{k}"
-				]
-				timeout, runtime = param4[j] # depends on use_cpu
-				params['service_timeout'] = timeout
-				params['max_prediction_steps'] = 50
-				params['scene_params'] = scene_params
-				params['use_cpu'] = use_cpu
-				params['poses'] = pose
-				filename = f"{workload_id}{DELIMETER}{label}.yaml"
-				all_params[filename] = (params, runtime)
-				workload_id += 1
+	for i, scene_params in scenes.items():
+		for j, use_cpu in cpu_options.items():
+			for k, planning_window in planning_windows.items():
+				for l, pose in enumerate(poses):
+					label = f"scene_{i}{DELIMETER}use_cpu_{j}{DELIMETER}pred_steps_{k}{DELIMETER}pose_{l}"
+					params = {}
+					params['label'] = label
+					params['tags'] = [
+						PLAN_NAME,
+						f"scene_{i}",
+						f"use_cpu_{j}",
+						f"planning_window_{k}",
+						f"pose_{l}"
+					]
+
+					timeout = 10000
+					runtime = 120.0
+					
+					params['service_timeout'] = timeout
+					params['max_prediction_steps'] = planning_window
+					params['scene_params'] = scene_params
+					params['use_cpu'] = use_cpu
+					params['poses'] = pose
+					params['agents_config'] = _generate_agents_config(k_force[i]) # depends on scene
+					filename = f"{workload_id}{DELIMETER}{label}.yaml"
+					all_params[filename] = (params, runtime)
+					workload_id += 1
 	return all_params
 
 def _generate_workload_yaml(params: Dict):
@@ -230,7 +289,7 @@ def _generate_workload_yaml(params: Dict):
     goal_distance_cost_weight=GOAL_DISTANCE_COST_WEIGHT,
     obstacle_distance_cost_weight=OBSTACLE_DISTANCE_COST_WEIGHT,
     poses=params['poses'],
-    agents=AGENTS_CONFIGS
+    agents=params['agents_config']
 	)
 	
 	workload_config = WorkloadConfig(

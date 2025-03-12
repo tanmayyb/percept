@@ -1,6 +1,0 @@
-./eval/cleanup.sh eval/plans/250309_table2_r1
-python eval/plans/250309_table2_r1/plan.py
-python eval/run_plan.py eval/plans/250309_table2_r1/ --duration 0.0
-
-
-clear && ./eval/cleanup.sh eval/plans/250309_table2_r1 && python eval/plans/250309_table2_r1/plan.py

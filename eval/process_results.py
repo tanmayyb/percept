@@ -31,6 +31,8 @@ class MetricsReader:
         workload_config = documents[0]['workload_config']
         self.workload_config = workload_config
         poses = workload_config['planner_config']['poses']
+        agents = workload_config['planner_config']['agents']
+        self.FORCE_CONFIG_LABEL = 'forces' if 'forces' in list(agents[0].keys()) else 'force_configs'
         self.start_pos = poses['start_pos']
         self.goal_pos = poses['goal_pos']
         self.start_orientation = poses['start_orientation']
@@ -131,9 +133,17 @@ class MetricsReader:
         if num_collisions > 0 \
             or (time_limit is not None and elapsed_motion_runtime > time_limit) \
             or (acceptable_min_distances_to_target is not None and min_distances_to_target > acceptable_min_distances_to_target):
-            return False
+            failure_reason = []
+            if num_collisions > 0:
+                failure_reason.append("Collision")
+            if time_limit is not None and elapsed_motion_runtime > time_limit:
+                failure_reason.append("Elapsed motion runtime > time limit")
+            if acceptable_min_distances_to_target is not None and min_distances_to_target > acceptable_min_distances_to_target:
+                failure_reason.append("Minimum distance to target > acceptable limit")
+            
+            return False, failure_reason
         else:
-            return True
+            return True, None
 
     def process_info_and_analysis(self):
         start_time = time.time()
@@ -142,7 +152,7 @@ class MetricsReader:
         pointcloud = np.array(self.pointclouds.iloc[0]['points'])
         num_agents = len(self.workload_config['planner_config']['agents'])
         detection_shell_radius = {
-            f"agent_{i+1}": next(v for k, v in agent['forces'].items() if 'heuristic_force' in k)['detect_shell_radius']
+            f"agent_{i+1}": next(v for k, v in agent[self.FORCE_CONFIG_LABEL].items() if 'heuristic_force' in k)['detect_shell_radius']
             for i, agent in enumerate(self.workload_config['planner_config']['agents'])
         }
 
@@ -223,20 +233,22 @@ class MetricsReader:
         )
         agent_residency_pct = {agent: (t / total_time) * 100 for agent, t in agent_residency.items()}
 
-        average_planning_time = np.mean(self.agent_planning_times['planning_time'].iloc[1:])
+        mean_planning_time = np.mean(self.agent_planning_times['planning_time'].iloc[1:])
+        stddev_planning_time = np.std(self.agent_planning_times['planning_time'].iloc[1:])
 
         experiment_start_timestamp = timestamps.min()
         experiment_end_timestamp = timestamps.max()
         elapsed_experiment_runtime = experiment_end_timestamp - experiment_start_timestamp
         elapsed_motion_runtime = min_distances_to_target_timestamp - motion_start_timestamp
 
-        success = self.success_criteria(num_collisions, elapsed_motion_runtime, min_distances_to_target)
+        success, reason = self.success_criteria(num_collisions, elapsed_motion_runtime, min_distances_to_target)
 
         print(f"File: {self.filename} took {time.time() - start_time:.3f} seconds to process")
 
         self.info = {
             'label': label,
             'success': str(success),
+            'reason': reason,
             'timestamps': timestamps,
             'num_agents': num_agents,
             'num_obstacles': len(pointcloud),
@@ -260,7 +272,8 @@ class MetricsReader:
             'elapsed_motion_runtime': elapsed_motion_runtime,
             'min_distances_to_target': min_distances_to_target,
             'min_distances_to_target_timestamp': min_distances_to_target_timestamp,
-            'average_planning_time': average_planning_time,
+            'mean_planning_time': mean_planning_time,
+            'stddev_planning_time': stddev_planning_time,
         }
 
 
@@ -403,7 +416,7 @@ class MetricsReader:
     def plot_best_agent_selection(self):
         df = self.best_agent
         heuristic_mapping = {
-            agent_id + 1: f"{agent_id + 1}: {list(agent['forces'].keys())[1].split('_')[0]}"
+            agent_id + 1: f"{agent_id + 1}: {list(agent[self.FORCE_CONFIG_LABEL].keys())[1].split('_')[0]}"
             for agent_id, agent in enumerate(self.workload_config['planner_config']['agents'])
         }
         df['heuristic'] = df['agent_id'].map(heuristic_mapping)

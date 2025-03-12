@@ -20,3 +20,5 @@ seaborn
 plotly
 nbformat
 tqdm
+msgpack 
+msgpack-numpy

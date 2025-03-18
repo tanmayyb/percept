@@ -1,9 +1,9 @@
 metadata:
-  created_at: '20250225_191723'
+  created_at: '20250317'
   plan_name: test_performance
-  label: multiagent_wkld2_trap
+  label: multiagent_wkld_trap
   tags:
-  - narrow_passage
+  - trap
   - velocity_heuristic_force
   - goalobstacle_heuristic_force
   info: Benchmark performance for multi-agent planning
@@ -12,10 +12,10 @@ percept_config:
   scene_config:
     scene_type: generated
     scene_params:
-      scene_generation_type: narrow_passage
+      scene_generation_type: trap
       scene_generation_params:
         wall1:
-          spacing: 0.1
+          spacing: 0.040
           plane: xz
           wall_width: 1.0
           wall_height: 1.0
@@ -24,7 +24,7 @@ percept_config:
           wall_offset_k: 1.0
           include_hole: false
         wall2:
-          spacing: 0.1
+          spacing: 0.040
           plane: yz
           wall_width: 1.0
           wall_height: 1.0
@@ -33,7 +33,7 @@ percept_config:
           wall_offset_k: -0.5
           include_hole: false
         wall3:
-          spacing: 0.1
+          spacing: 0.040
           plane: yz
           wall_width: 1.0
           wall_height: 1.0
@@ -42,16 +42,20 @@ percept_config:
           wall_offset_k: 0.5
           include_hole: false
         wall4:
-          spacing: 0.1
+          spacing: 0.040
           plane: xy
           wall_width: 1.0
           wall_height: 1.0
           wall_center_i: 0.0
           wall_center_j: 0.5
           wall_offset_k: 0.5
-          include_hole: false
+          include_hole: true
+          hole_center_x: 0.0
+          hole_center_y: 0.0
+          hole_width: 0.5
+          hole_height: 0.5
         wall5:
-          spacing: 0.1
+          spacing: 0.040
           plane: xy
           wall_width: 1.0
           wall_height: 1.0
@@ -60,20 +64,21 @@ percept_config:
           wall_offset_k: -0.5
           include_hole: false
   rviz_config:
-    show_rviz: false
+    show_rviz: true
     rviz_config_path: rviz2/planning.rviz
   fields_config:
-    agent_radius: 0.05
-    mass_radius: 0.05
+    agent_radius: 0.02
+    mass_radius: 0.02
     publish_force_vector: false
     show_processing_delay: false
     show_requests: false
+    use_cpu: false
 planner_config:
   experiment_type: oriented_pointmass
   loop_frequency: 1000
-  service_timeout: 200
+  service_timeout: 10000
   delta_t: 0.01
-  max_prediction_steps: 15
+  max_prediction_steps: 50
   planning_frequency: 100
   agent_switch_factor: 1.0
   path_length_cost_weight: 1.0
@@ -82,7 +87,7 @@ planner_config:
   poses:
     start_pos:
     - 0.0
-    - -1.0
+    - 0.0
     - 0.0
     goal_pos:
     - 0.0
@@ -100,7 +105,7 @@ planner_config:
     - 0.0
   agents:
   - mass: 1.0
-    radius: 0.05
+    radius: 0.020
     max_velocity: 0.1
     approach_distance: 0.25
     forces:
@@ -112,70 +117,72 @@ planner_config:
         k_damping_angular: 0.025
       velocity_heuristic_force:
         k_gain: 1.0
-        k_force: 1.0e-01
+        # k_force: 1.60e-03 # 1.0e-01
+        # k_force: 2.5e-03 # 1.0e-01
+        k_force: 5.0e-03 # 1.0e-01
         detect_shell_radius: 5.0
         max_allowable_force: 20.0
-  - mass: 1.0
-    radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.25
-    forces:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      velocity_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-01
-        detect_shell_radius: 5.0
-        max_allowable_force: 20.0
-  - mass: 1.0
-    radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.25
-    forces:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      velocity_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-01
-        detect_shell_radius: 5.0
-        max_allowable_force: 20.0
-  - mass: 1.0
-    radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.25
-    forces:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      velocity_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-03
-        detect_shell_radius: 5.0
-        max_allowable_force: 20.0
-  - mass: 1.0
-    radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.25
-    forces:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      velocity_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-01
-        detect_shell_radius: 5.0
-        max_allowable_force: 20.0
+  # - mass: 1.0
+  #   radius: 0.05
+  #   max_velocity: 0.1
+  #   approach_distance: 0.25
+  #   forces:
+  #     attractor_force:
+  #       k_gain: 1.0
+  #       k_stiffness_linear: 1.0
+  #       k_stiffness_angular: 0.01
+  #       k_damping_linear: 2.5
+  #       k_damping_angular: 0.025
+  #     velocity_heuristic_force:
+  #       k_gain: 1.0
+  #       k_force: 1.0e-01
+  #       detect_shell_radius: 5.0
+  #       max_allowable_force: 20.0
+  # - mass: 1.0
+  #   radius: 0.05
+  #   max_velocity: 0.1
+  #   approach_distance: 0.25
+  #   forces:
+  #     attractor_force:
+  #       k_gain: 1.0
+  #       k_stiffness_linear: 1.0
+  #       k_stiffness_angular: 0.01
+  #       k_damping_linear: 2.5
+  #       k_damping_angular: 0.025
+  #     velocity_heuristic_force:
+  #       k_gain: 1.0
+  #       k_force: 1.0e-01
+  #       detect_shell_radius: 5.0
+  #       max_allowable_force: 20.0
+  # - mass: 1.0
+  #   radius: 0.05
+  #   max_velocity: 0.1
+  #   approach_distance: 0.25
+  #   forces:
+  #     attractor_force:
+  #       k_gain: 1.0
+  #       k_stiffness_linear: 1.0
+  #       k_stiffness_angular: 0.01
+  #       k_damping_linear: 2.5
+  #       k_damping_angular: 0.025
+  #     velocity_heuristic_force:
+  #       k_gain: 1.0
+  #       k_force: 1.0e-03
+  #       detect_shell_radius: 5.0
+  #       max_allowable_force: 20.0
+  # - mass: 1.0
+  #   radius: 0.05
+  #   max_velocity: 0.1
+  #   approach_distance: 0.25
+  #   forces:
+  #     attractor_force:
+  #       k_gain: 1.0
+  #       k_stiffness_linear: 1.0
+  #       k_stiffness_angular: 0.01
+  #       k_damping_linear: 2.5
+  #       k_damping_angular: 0.025
+  #     velocity_heuristic_force:
+  #       k_gain: 1.0
+  #       k_force: 1.0e-01
+  #       detect_shell_radius: 5.0
+  #       max_allowable_force: 20.0

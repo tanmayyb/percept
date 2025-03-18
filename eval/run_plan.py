@@ -67,7 +67,7 @@ def read_plan(plan_dir):
     with open(plan_file, 'r') as f:
         plan = yaml.safe_load(f)
     
-    return plan.get('workloads', []), plan.get('runtime', [])
+    return plan.get('plan_name', None), plan.get('workloads', []), plan.get('runtime', [])
 
 def copy_logs(eval_dir, workload_log_dir, timestamp):
     for log_file in ['planner.log', 'percept.log']:
@@ -160,7 +160,7 @@ def main():
     logging.info(f"Log file: {log_file}")
 
     try:
-        workloads, runtimes = read_plan(plan_dir)
+        plan_name, workloads, runtimes = read_plan(plan_dir)
         if args.duration == 0.0 and len(runtimes) > len(workloads):
             logging.error(f"Number of runtimes ({len(runtimes)}) is greater than the number of workloads ({len(workloads)}). Cannot  implement runtime with dynamic loading!")
             return 1

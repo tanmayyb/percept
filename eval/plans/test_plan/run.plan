@@ -1,0 +1,7 @@
+plan_name: test_plan
+workloads:
+- eval/plans/test_plan/workloads/hole_in_the_wall.yaml
+- eval/plans/test_plan/workloads/trap.yaml
+runtime:
+- 120.0
+- 120.0

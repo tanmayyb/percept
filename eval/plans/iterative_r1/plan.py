@@ -10,6 +10,7 @@ Workload:
 --agents
 '''
 
+import argparse
 import yaml
 from pathlib import Path
 import os
@@ -23,30 +24,35 @@ import random
 from mp_eval.classes.workload import *
 
 # globals
-PLAN_NAME = "table3_r1"
+PLAN_NAME = "iterative_r1"
 EXPERIMENT_TYPE = "oriented_pointmass"
 RVIZ_CONFIG_PATH = "rviz2/planning.rviz"
-SHOW_RVIZ = False
+SHOW_RVIZ = True
 SHOW_PROCESSING_DELAY = False
 SHOW_REQUESTS = False
 DELIMETER = "-"
 
 PLANNER_LOOP_FREQUENCY = 1000
 DELTA_T = 0.01
+MAX_PREDICTION_STEPS = 100
 PLANNING_FREQUENCY=50
+SERVICE_TIMEOUT = 10000
+RUNTIME = 70.0
 
 AGENT_SWITCH_FACTOR = 1.0
 PATH_LENGTH_COST_WEIGHT = 1.0
 GOAL_DISTANCE_COST_WEIGHT = 1.0
-OBSTACLE_DISTANCE_COST_WEIGHT = 1.0
+OBSTACLE_DISTANCE_COST_WEIGHT = 2.0
 
 AGENT_MASS = 1.0
 AGENT_RADIUS = 0.020
 MASS_RADIUS = 0.020
 MAX_VELOCITY = 0.1
 APPROACH_DISTANCE = 0.25
+DETECT_SHELL_RADIUS = 20.0
+MAX_ALLOWABLE_FORCE = 40.0
 
-FORCE_LIST = ["attractor_force", "velocity_heuristic_force"]
+FORCE_LIST = ["attractor_force"]
 FORCE_CONFIGS = {
 	"attractor_force": {
 		"k_gain": 1.0,
@@ -55,43 +61,16 @@ FORCE_CONFIGS = {
 		"k_damping_linear": 2.5,
 		"k_damping_angular": 0.025
 	},
-	"velocity_heuristic_force": {
-		"k_gain": 1.0,
-		# "k_force": 5.0e-2,
-
-		"k_force": 2.5e-3,
-
-		"detect_shell_radius": 20.0,
-		"max_allowable_force": 40.0
-	}
+	# HEURISTIC CONFIGS ARE INDEX HERE  
 }
 
-AGENTS_CONFIGS = [
-	AgentConfig(
-		mass=AGENT_MASS,
-		radius=AGENT_RADIUS,
-		max_velocity=MAX_VELOCITY,
-		approach_distance=APPROACH_DISTANCE,
-		force_list=FORCE_LIST,
-		force_configs=FORCE_CONFIGS
-	)
-]
-
-PARAMS_KEYS = ['label', 'tags', 'service_timeout', 'max_prediction_steps', 'scene_params', 'use_cpu', 'poses', 'agents_config']
+PARAMS_KEYS = ['label', 'tags', 'scene_params', 'poses', 'agents_config']
 
 
 # Add custom representer to maintain dictionary order
 def ordered_dict_representer(dumper, data):
-    return dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
+	return dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
 yaml.add_representer(OrderedDict, ordered_dict_representer)
-
-
-def _generate_agents_config(k_force):
-	force_configs = deepcopy(FORCE_CONFIGS)
-	agents_config = deepcopy(AGENTS_CONFIGS)
-	force_configs['velocity_heuristic_force']['k_force'] = k_force
-	agents_config[0].force_configs = force_configs
-	return agents_config
 
 
 
@@ -132,59 +111,35 @@ def _generate_scene_params():
 		}
 	}
 
-	cluttered1k = {
-		"scene_generation_type": "cluttered",
-		"scene_generation_params": {
-			"num_obstacles": 1000,
-			"seed": 42,
-			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
-			"include_deadzones": True,
-			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
-			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
-		}
-	}
-
-	cluttered5k = {
-		"scene_generation_type": "cluttered",
-		"scene_generation_params": {
-			"num_obstacles": 5000,
-			"seed": 42,
-			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
-			"include_deadzones": True,
-			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
-			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
-		}
-	}
-
-	cluttered10k = {
-		"scene_generation_type": "cluttered",
-		"scene_generation_params": {
-			"num_obstacles": 10000,
-			"seed": 42,
-			"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
-			"include_deadzones": True,
-			"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
-			"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
-		}
-	}
+	# cluttered5k = {
+	# 	"scene_generation_type": "cluttered",
+	# 	"scene_generation_params": {
+	# 		"num_obstacles": 5000,
+	# 		"seed": 42,
+	# 		"bbox": [-2.25, 0.0, -2.25, 2.25, 2.25, 2.25],
+	# 		"include_deadzones": True,
+	# 		"deadzone_bbox1": [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5],
+	# 		"deadzone_bbox2": [-0.5, 1.75, -0.5, 0.5, 2.75, 0.5]
+	# 	}
+	# }
 
 	scenes[0] = narrow_passage
-	scenes[1] = cluttered1k
-	scenes[2] = cluttered5k
-	scenes[3] = cluttered10k
+	# cluttered5k, hole in the wall, trap
+	
+	# scenes[1] = cluttered1k
+	# scenes[2] = cluttered5k
+	# scenes[3] = cluttered10k
 
 	return scenes
 
-def _generate_poses():
+def _generate_poses(num_poses = 5):
 	random.seed(42)
 	poses = []
-	num_poses = 10
 
 	start_orientation = [1.0, 0.0, 0.0, 0.0]
 	goal_orientation = [1.0, 0.0, 0.0, 0.0]
 	rangex = 0.5
 	rangez = 0.5
-
 
 	for i in range(num_poses):
 		start_pos = [random.uniform(-rangex, rangex), 0.0, random.uniform(-rangez, rangez)]
@@ -202,44 +157,66 @@ def _generate_poses():
 	return poses
 
 
-def _generate_procedurally():
+def _generate_agents_config(tuner_agent_config:dict):
+	agents_config = []
+	for tuner_agent_name, agent_config in tuner_agent_config.items():
+		force_configs = deepcopy(FORCE_CONFIGS)
+		force_list = deepcopy(FORCE_LIST)
+
+		heuristic_name = agent_config['heuristic']
+		force_configs[heuristic_name] = {
+			"k_gain": 1.0,
+			"k_force": agent_config['k_force'],
+			"detect_shell_radius": DETECT_SHELL_RADIUS,
+			"max_allowable_force": MAX_ALLOWABLE_FORCE
+		}
+		force_list.append(heuristic_name)
+
+		agent_config = AgentConfig(
+			mass=AGENT_MASS,
+			radius=AGENT_RADIUS,
+			max_velocity=MAX_VELOCITY,
+			approach_distance=APPROACH_DISTANCE,
+			force_list=force_list,
+			force_configs=force_configs
+		)
+
+		agents_config.append(agent_config)
+
+	return agents_config
+
+
+def _generate_procedurally(workload_id, plan_config:dict):
+
+	num_random_poses = plan_config['num_random_poses']
+	agents_config = plan_config['agents']
+
 	all_params = OrderedDict()
-	workload_id = 1
 	scenes = _generate_scene_params()
-	cpu_options = {0: False, 1: True}
-	planning_windows = {0: 50, 1: 100, 2: 150}
-	poses = _generate_poses()
-	
-	k_force = [2.5e-3, 5.0e-2, 5.0e-2, 5.0e-2]
+	poses = _generate_poses(num_random_poses)
 
 	for i, scene_params in scenes.items():
-		for j, use_cpu in cpu_options.items():
-			for k, planning_window in planning_windows.items():
-				for l, pose in enumerate(poses):
-					label = f"scene_{i}{DELIMETER}use_cpu_{j}{DELIMETER}pred_steps_{k}{DELIMETER}pose_{l}"
-					params = {}
-					params['label'] = label
-					params['tags'] = [
-						PLAN_NAME,
-						f"scene_{i}",
-						f"use_cpu_{j}",
-						f"planning_window_{k}",
-						f"pose_{l}"
-					]
+		for j, pose in enumerate(poses):
+			label = f"scene_{i}{DELIMETER}pose_{j}"
+			params = {}
+			params['label'] = label
+			params['tags'] = [
+				PLAN_NAME,
+				f"scene_{i}",
+				f"pose_{j}"
+			]
 
-					timeout = 10000
-					runtime = 120.0
-					
-					params['service_timeout'] = timeout
-					params['max_prediction_steps'] = planning_window
-					params['scene_params'] = scene_params
-					params['use_cpu'] = use_cpu
-					params['poses'] = pose
-					params['agents_config'] = _generate_agents_config(k_force[i]) # depends on scene
-					filename = f"{workload_id}{DELIMETER}{label}.yaml"
-					all_params[filename] = (params, runtime)
-					workload_id += 1
-	return all_params
+			runtime = RUNTIME
+			
+			params['scene_params'] = scene_params
+			params['poses'] = pose
+			
+			params['agents_config'] = _generate_agents_config(agents_config)
+
+			filename = f"{workload_id}{DELIMETER}{label}.yaml"
+			all_params[filename] = (params, runtime)
+			workload_id += 1
+	return workload_id, all_params
 
 def _generate_workload_yaml(params: Dict):
   
@@ -269,7 +246,7 @@ def _generate_workload_yaml(params: Dict):
 			publish_force_vector=False,
 			show_processing_delay=SHOW_PROCESSING_DELAY,
 			show_requests=SHOW_REQUESTS,
-			use_cpu=params['use_cpu']
+			use_cpu=False
 		),
 		rviz_config=RvizConfig(
 			show_rviz=SHOW_RVIZ,
@@ -278,18 +255,18 @@ def _generate_workload_yaml(params: Dict):
 	)
 
 	planner_config = PlannerConfig(
-    experiment_type=EXPERIMENT_TYPE,	
-    loop_frequency=PLANNER_LOOP_FREQUENCY,
-    service_timeout=params['service_timeout'],
+		experiment_type=EXPERIMENT_TYPE,	
+		loop_frequency=PLANNER_LOOP_FREQUENCY,
+		service_timeout=SERVICE_TIMEOUT,
 		delta_t=DELTA_T,
-    max_prediction_steps=params['max_prediction_steps'],
-    planning_frequency=PLANNING_FREQUENCY,
-    agent_switch_factor=AGENT_SWITCH_FACTOR,
-    path_length_cost_weight=PATH_LENGTH_COST_WEIGHT,
-    goal_distance_cost_weight=GOAL_DISTANCE_COST_WEIGHT,
-    obstacle_distance_cost_weight=OBSTACLE_DISTANCE_COST_WEIGHT,
-    poses=params['poses'],
-    agents=params['agents_config']
+		max_prediction_steps=MAX_PREDICTION_STEPS,
+		planning_frequency=PLANNING_FREQUENCY,
+		agent_switch_factor=AGENT_SWITCH_FACTOR,
+		path_length_cost_weight=PATH_LENGTH_COST_WEIGHT,
+		goal_distance_cost_weight=GOAL_DISTANCE_COST_WEIGHT,
+		obstacle_distance_cost_weight=OBSTACLE_DISTANCE_COST_WEIGHT,
+		poses=params['poses'],
+		agents=params['agents_config']
 	)
 	
 	workload_config = WorkloadConfig(
@@ -300,11 +277,11 @@ def _generate_workload_yaml(params: Dict):
 	return workload_config.to_yaml()
 
 
-def main():
+def generate_new_plan(workload_id, plan_config:dict):
 	plan_directory = Path(os.path.dirname(__file__))
 	plan_index_file = plan_directory / "run.plan"
-	os.makedirs(plan_directory / "workloads", exist_ok=True)
-	workload_params = _generate_procedurally()
+	os.makedirs(plan_directory / "workloads", exist_ok=True)	
+	workload_id, workload_params = _generate_procedurally(workload_id, plan_config)
 	plan = OrderedDict({'plan_name': PLAN_NAME, 'workloads': [], 'runtime': []})
 	
 	for filename, (params, runtime) in workload_params.items():
@@ -318,5 +295,4 @@ def main():
 	with open(plan_index_file, "w") as f:
 		yaml.dump(plan, f)
 
-if __name__ == "__main__":
-	main()
+	return workload_id

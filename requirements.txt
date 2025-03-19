@@ -22,3 +22,6 @@ nbformat
 tqdm
 msgpack 
 msgpack-numpy
+
+# optimization
+scikit-optimize

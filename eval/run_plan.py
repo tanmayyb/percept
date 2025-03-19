@@ -58,9 +58,9 @@ def setup_logging(plan_dir):
     
     return log_file
 
-def read_plan(plan_dir):
+def read_plan(plan_dir:Path):
     """Read the run.plan file and return workload paths."""
-    plan_file = os.path.join(plan_dir, 'run.plan')
+    plan_file = str(plan_dir / 'run.plan')
     if not os.path.exists(plan_file):
         raise FileNotFoundError(f"Could not find run.plan file in {plan_dir}")
     
@@ -144,7 +144,7 @@ def run_workload(workload_path, plan_name, duration, enable_metrics):
         logging.info(f"{green}Workload {workload_path} completed successfully.{reset}")    
     return True
 
-def run_plan(args, plan_dir):
+def run_plan(args, plan_dir:Path):
     plan_name, workloads, runtimes = read_plan(plan_dir)
     if args.duration == 0.0 and len(runtimes) > len(workloads):
         logging.error(f"Number of runtimes ({len(runtimes)}) is greater than the number of workloads ({len(workloads)}). Cannot  implement runtime with dynamic loading!")
@@ -185,11 +185,11 @@ def main():
     parser.add_argument('--wait', type=float, default=10.0, help='Wait time between workloads in seconds')
     args = parser.parse_args()
 
-    plan_dir = os.path.abspath(args.plan_dir)
+    plan_dir = Path(os.path.abspath(args.plan_dir))
     
     log_file = setup_logging(plan_dir)
     start_time = time.time()  # Start timing
-    logging.info(f"Starting plan execution from directory: {plan_dir}")
+    logging.info(f"Starting plan execution from directory: {str(plan_dir)}")
     logging.info(f"Log file: {log_file}")
 
     try:

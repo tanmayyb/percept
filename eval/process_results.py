@@ -65,6 +65,8 @@ class MetricsReader:
                 result['data'] = self._parse_best_agent_record(record)
             elif result['type'] == 'agent_planning_time':
                 result['data'] = record
+            elif result['type'] == 'agent_cost':
+                result['data'] = record
             return result
 
         # Process records in parallel
@@ -98,6 +100,7 @@ class MetricsReader:
         self.pointclouds = pd.DataFrame(self.pointclouds)
         self.best_agent = pd.DataFrame(self.best_agent)
         self.agent_planning_times = pd.DataFrame(self.agent_planning_times)
+        self.agent_costs = pd.DataFrame(self.agent_costs)
         self.info = None
         self.process_info_and_analysis()
 

@@ -1,9 +1,9 @@
 metadata:
-  created_at: '20250319'
+  created_at: '20250324'
   plan_name: test_plan
-  label: hole_in_the_wall_switching
+  label: narrow_passage_switching
   tags:
-  - hole_in_the_wall
+  - narrow_passage
   - switching
   info: Benchmark performance for multi-agent planning
 percept_config:
@@ -11,28 +11,34 @@ percept_config:
   scene_config:
     scene_type: generated
     scene_params:
-      scene_generation_type: wall
+      scene_generation_type: narrow_passage
       scene_generation_params:
-        spacing: 0.040
-        plane: yz
-        wall_width: 2.0
-        wall_height: 2.0
-        wall_center_i: 0.0
-        wall_center_j: 0.0
-        wall_offset_k: 1.0
-        include_hole: true
-        hole_center_x: 0.40 
-        hole_center_y: -0.40
-        # good ranges
-        # quadrants
-        # i: 0.20, -0.20
-        # ii: 0.20, 0.20
-        # iii: -0.20, 0.20
-        # iv: -0.20, -0.20
-        # hole_center_x: 0.0
-        # hole_center_y: 0.0
-        hole_width: 0.33 # 0.33
-        hole_height: 0.40 # 0.55 # 0.66
+        wall1:
+          spacing: 0.04
+          plane: xz
+          wall_width: 4.0
+          wall_height: 4.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 0.75
+          include_hole: true
+          hole_center_x: -0.25
+          hole_center_y: 0.0
+          hole_width: 0.5
+          hole_height: 4.0
+        wall2:
+          spacing: 0.04
+          plane: xz
+          wall_width: 4.0
+          wall_height: 4.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 1.5
+          include_hole: true
+          hole_center_x: 0.25
+          hole_center_y: 0.0
+          hole_width: 0.5
+          hole_height: 4.0
   rviz_config:
     show_rviz: true
     rviz_config_path: rviz2/planning.rviz
@@ -47,33 +53,19 @@ percept_config:
 planner_config:
   experiment_type: oriented_pointmass
   loop_frequency: 1000
-  service_timeout: 10000
+  service_timeout: 2500
   delta_t: 0.01
-  max_prediction_steps: 1500
+  max_prediction_steps: 100
   planning_frequency: 30
   agent_switch_factor: 1.0
   path_length_cost_weight: 1.0
   goal_distance_cost_weight: 1.0
   obstacle_distance_cost_weight: 1.0
   poses:
-    start_pos:
-    - 0.0
-    - 0.0
-    - 0.0
-    goal_pos:
-    - 2.0
-    - 0.0
-    - 0.0
-    start_orientation:
-    - 1.0
-    - 0.0
-    - 0.0
-    - 0.0
-    goal_orientation:
-    - 1.0
-    - 0.0
-    - 0.0
-    - 0.0
+    start_pos:  [0.0, 0.0, 0.0]
+    goal_pos: [0.0, 3.0, 0.0]
+    start_orientation: [1.0, 0.0, 0.0, 0.0]
+    goal_orientation: [1.0, 0.0, 0.0, 0.0]
   agents:
   - mass: 1.0
     radius: 0.02
@@ -92,6 +84,46 @@ planner_config:
       velocity_heuristic_force:
         k_gain: 1.0
         k_force: 1.0e-2 # 2.5e-3
+        detect_shell_radius: 20.0
+        max_allowable_force: 40.0
+
+  - mass: 1.0
+    radius: 0.02
+    max_velocity: 0.1
+    approach_distance: 0.25
+    force_list:
+    - attractor_force
+    - velocity_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 1.0
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.01
+        k_damping_linear: 2.5
+        k_damping_angular: 0.025
+      velocity_heuristic_force:
+        k_gain: 1.0
+        k_force: 1.0e-3 # 2.5e-3
+        detect_shell_radius: 20.0
+        max_allowable_force: 40.0
+
+  - mass: 1.0
+    radius: 0.02
+    max_velocity: 0.1
+    approach_distance: 0.25
+    force_list:
+    - attractor_force
+    - velocity_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 1.0
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.01
+        k_damping_linear: 2.5
+        k_damping_angular: 0.025
+      velocity_heuristic_force:
+        k_gain: 1.0
+        k_force: 1.0e-4 # 2.5e-3
         detect_shell_radius: 20.0
         max_allowable_force: 40.0
   - mass: 1.0

@@ -1,5 +1,5 @@
 metadata:
-  created_at: '20250319'
+  created_at: '20250324'
   plan_name: test_plan
   label: hole_in_the_wall_switching
   tags:
@@ -47,9 +47,9 @@ percept_config:
 planner_config:
   experiment_type: oriented_pointmass
   loop_frequency: 1000
-  service_timeout: 10000
+  service_timeout: 2500
   delta_t: 0.01
-  max_prediction_steps: 1500
+  max_prediction_steps: 100
   planning_frequency: 30
   agent_switch_factor: 1.0
   path_length_cost_weight: 1.0
@@ -92,44 +92,6 @@ planner_config:
       velocity_heuristic_force:
         k_gain: 1.0
         k_force: 1.0e-2 # 2.5e-3
-        detect_shell_radius: 20.0
-        max_allowable_force: 40.0
-  - mass: 1.0
-    radius: 0.02
-    max_velocity: 0.1
-    approach_distance: 0.25
-    force_list:
-    - attractor_force
-    - goalobstacle_heuristic_force
-    force_configs:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      goalobstacle_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-3
-        detect_shell_radius: 20.0
-        max_allowable_force: 40.0
-  - mass: 1.0
-    radius: 0.02
-    max_velocity: 0.1
-    approach_distance: 0.25
-    force_list:
-    - attractor_force
-    - obstacle_heuristic_force
-    force_configs:
-      attractor_force:
-        k_gain: 1.0
-        k_stiffness_linear: 1.0
-        k_stiffness_angular: 0.01
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
-      obstacle_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-4
         detect_shell_radius: 20.0
         max_allowable_force: 40.0
   - mass: 1.0

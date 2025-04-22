@@ -19,3 +19,6 @@ eval/results/
 **/__pycache__/
 **/.vscode/
 **/.cache/
+
+
+**/traces/

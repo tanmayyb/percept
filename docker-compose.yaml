@@ -7,7 +7,17 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${HOME}/.Xauthority:/root/.Xauthority
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /proc/sys/kernel/perf_event_paranoid:/perf_event_paranoid:ro
       - ./src/ga_cf_planner:/ros2_ws
     stdin_open: true
     tty: true
     command: /bin/bash
+    pid: host
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    init: true         
+    privileged: true   

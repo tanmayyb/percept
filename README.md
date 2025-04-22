@@ -28,6 +28,12 @@ Goal: Fast (~30Hz) perception pipline for workspace approximation research for h
 | 5. Docker ([instructions](https://github.com/tanmayyb/setup/blob/main/docker.sh)) |
 | 6. Sim (Under Development)      |
 
+
+```
+https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+```
+
+
 ## Setup
 
 - Install aforementioned requirements and clone this git repo
@@ -110,6 +116,26 @@ Note: `src/ga_cf_planner` is mounted as a volume in the container. Changes made 
     ```
     python eval/run_plan.py eval/plans/25-02-23_narrow_passage_agents_ablation --duration 30 --enable_metrics
     ```
+
+## Profiling
+
+Kernel Profiling:
+```bash
+sudo nsys profile --trace=cuda,nvtx,osrt \
+  --trace-fork-before-exec=true \
+  -o traces/workload_profile_name \
+  --force-overwrite true \
+  ros2 launch mp_eval launch_workload.py \
+    workload:=eval/workloads/workload_profile_name.yaml \
+    disable_metrics:=true timed_run:=60.0
+```
+
+```bash
+sudo nano /etc/sysctl.conf
+# Add the following line
+kernel.perf_event_paranoid=1
+sudo sysctl -p
+```
 
 ## Credits
 

@@ -10,7 +10,7 @@ percept_config:
     scene_type: "static" # static, or generated
     scene_params: 
         name: "narrow_passage" # can be any identifier
-        static_scene_path: "assets/benchmark_scenes/auto_generated_scene.yaml"
+        static_scene_path: "assets/benchm ark_scenes/auto_generated_scene.yaml"
   fields_config: 
     k_cf_velocity: 0.001
     k_cf_obstacle: 0.001

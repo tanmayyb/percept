@@ -6,7 +6,7 @@ metadata:
   - narrow_passage
   - switching
   info: Benchmark performance for multi-agent planning
-  run_planner_profiler: true
+  run_planner_profiler: false
 percept_config:
   mode: static
   scene_config:
@@ -46,7 +46,7 @@ percept_config:
   fields_config:
     agent_radius: 0.020
     mass_radius: 0.020
-    potential_detect_shell_rad: 0.75
+    potential_detect_shell_rad: 0.25
     publish_force_vector: false
     show_processing_delay: false
     show_requests: false

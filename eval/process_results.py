@@ -102,6 +102,16 @@ class MetricsReader:
         self.agent_planning_times = pd.DataFrame(self.agent_planning_times)
         self.agent_costs = pd.DataFrame(self.agent_costs)
         self.info = None
+
+
+        if len(self.pointclouds) == 0 and self.workload_config['percept_config']['mode'] == 'static':
+            from mp_eval.classes.scene_generator import SceneGenerator
+            from mp_eval.classes.workload import SceneConfig
+            scene_config = SceneConfig.from_config(self.workload_config['percept_config']['scene_config'])
+            scene_generator = SceneGenerator(scene_config, "", "")
+            pointcloud_data = scene_generator.get_assets()[0]
+            self.pointclouds = pd.DataFrame({"points": [[obs["position"] for obs in pointcloud_data]]})
+
         self.process_info_and_analysis()
 
 

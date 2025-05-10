@@ -1,0 +1,144 @@
+metadata:
+  created_at: '20250429'
+  plan_name: test_plan
+  label: dense_wall
+  tags:
+  - dense_wall
+  info: Benchmark performance for multi-agent planning
+  run_planner_profiler: false
+percept_config:
+  mode: static
+  scene_config:
+    scene_type: generated
+    scene_params:
+      publish_once: true
+      scene_generation_type: narrow_passage
+      scene_generation_params:
+
+        dense_wall2:
+          thickness: 4
+          spacing: 0.040
+          plane: xz
+          wall_width: 4.0
+          wall_height: 2.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 1.0
+          include_hole: true
+          hole_center_x: -1.0
+          hole_center_y: 0.0
+          hole_width: 0.50
+          hole_height: 4.0
+
+        dense_wall3:
+          thickness: 4
+          spacing: 0.040
+          plane: xz
+          wall_width: 4.0
+          wall_height: 2.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: 0.0
+          include_hole: true
+          hole_center_x: 1.0
+          hole_center_y: 0.0
+          hole_width: 0.50
+          hole_height: 4.0
+
+        dense_wall4:
+          thickness: 4
+          spacing: 0.040
+          plane: xz
+          wall_width: 4.0
+          wall_height: 2.0
+          wall_center_i: 0.0
+          wall_center_j: 0.0
+          wall_offset_k: -1.0
+          include_hole: true
+          hole_center_x: -1.0
+          hole_center_y: 0.0
+          hole_width: 0.50
+          hole_height: 4.0
+
+  rviz_config:
+    show_rviz: true
+    rviz_config_path: rviz2/planning.rviz
+  fields_config:
+    agent_radius: 0.020
+    mass_radius: 0.020
+    potential_detect_shell_rad: 0.25
+    show_processing_delay: false
+    show_requests: false
+    use_cpu: false
+planner_config:
+  experiment_type: oriented_pointmass
+  loop_frequency: 1000
+  service_timeout: 5000
+  # delta_t: 0.010
+  delta_t: 0.020
+  # max_prediction_steps: 100
+  max_prediction_steps: 100
+  planning_frequency: 30
+  agent_switch_factor: 1.0
+
+  # path_length_cost_weight: 0.0
+  # goal_distance_cost_weight: 0.0
+  # obstacle_distance_cost_weight: 0.0
+  trajectory_smoothness_cost_weight: 0.0
+
+  # aim for all under 10.0
+  path_length_cost_weight: 0.80 # <2.0
+  goal_distance_cost_weight: 1.0e-01 # 100-500
+  obstacle_distance_cost_weight: 0.25e-01 # 10-100
+  # trajectory_smoothness_cost_weight: 1.0e+05 # 1.0e+05 # in the 10s
+  
+  publish_trajectory: true
+  poses:
+    start_pos:  [0.0, -2.0, 0.0]
+    goal_pos: [0.0, 2.0, 0.0]
+    start_orientation: [1.0, 0.0, 0.0, 0.0]
+    goal_orientation: [1.0, 0.0, 0.0, 0.0]
+  agents:
+  - mass: 1.0
+    radius: 0.020
+    max_velocity: 0.010
+    approach_distance: 0.25
+    force_list:
+    - attractor_force
+    - apf_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 2.0
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.00
+        k_damping_linear: 2.5
+        k_damping_angular: 0.025
+      apf_heuristic_force:
+        k_gain: 2.5
+        k_force: 2.5e-4
+        detect_shell_radius: 3.0
+        max_allowable_force: 100.0
+
+  # tight
+  - mass: 1.0
+    radius: 0.020
+    max_velocity: 0.010
+    approach_distance: 0.25
+    force_list:
+    - attractor_force
+    - velocity_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 1.5
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.00
+        k_damping_linear: 2.5
+        k_damping_angular: 0.025
+      velocity_heuristic_force:
+        k_gain: 2.5
+        k_force: 1.0e-2
+        detect_shell_radius: 0.5
+        max_allowable_force: 100.0
+
+
+  

@@ -1,0 +1,64 @@
+metadata:
+  created_at: '20250609'
+  plan_name: test_plan
+  label: indoor_cluttered
+  tags:
+  - indoor_cluttered
+  info: Benchmark performance for multi-agent planning
+  run_planner_profiler: false
+percept_config:
+  mode: static
+  scene_config:
+    scene_type: static
+    scene_params:
+      static_scene_path: assets/benchmark_scenes/indoor_cluttered.yaml
+  rviz_config:
+    show_rviz: true
+    rviz_config_path: rviz2/planning.rviz
+  fields_config:
+    agent_radius: 0.020
+    mass_radius: 0.020
+    potential_detect_shell_rad: 0.25
+    show_processing_delay: false
+    show_requests: false
+    use_cpu: true
+planner_config:
+  experiment_type: oriented_pointmass
+  loop_frequency: 1000
+  service_timeout: 5000
+  delta_t: 0.020
+  max_prediction_steps: 100
+  planning_frequency: 30
+  agent_switch_factor: 1.0
+
+  path_length_cost_weight: 0.0
+  goal_distance_cost_weight: 0.0
+  obstacle_distance_cost_weight: 0.0
+  trajectory_smoothness_cost_weight: 0.0 
+
+  publish_trajectory: true
+  poses:
+    start_pos:  [0.4, -2.0, -0.4]
+    goal_pos: [0.4, 2.0, -0.4]
+    start_orientation: [1.0, 0.0, 0.0, 0.0]
+    goal_orientation: [1.0, 0.0, 0.0, 0.0]
+  agents:
+  - mass: 1.0
+    radius: 0.020
+    max_velocity: 0.010
+    approach_distance: 0.01
+    force_list:
+    - attractor_force
+    - velocity_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 1.0
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.00
+        k_damping_linear: 2.5
+        k_damping_angular: 0.00
+      velocity_heuristic_force:
+        k_gain: 2.0
+        k_force: 2.5e-2
+        detect_shell_radius: 0.25
+        max_allowable_force: 100.0

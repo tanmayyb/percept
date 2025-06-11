@@ -124,25 +124,25 @@ planner_config:
 
 
 
-  - mass: 1.0
-    radius: 0.020
-    max_velocity: 0.010
-    approach_distance: 0.25
-    force_list:
-    - attractor_force
-    - apf_heuristic_force
-    force_configs:
-      attractor_force:
-        k_gain: 10.0
-        k_stiffness_linear: 0.25
-        k_stiffness_angular: 0.00
-        k_damping_linear: 2.5
-        k_damping_angular: 0.00
-      apf_heuristic_force:
-        k_gain: 1.0
-        k_force: 1.0e-3
-        detect_shell_radius: 1.0
-        max_allowable_force: 100.0
+  # - mass: 1.0
+  #   radius: 0.020
+  #   max_velocity: 0.010
+  #   approach_distance: 0.25
+  #   force_list:
+  #   - attractor_force
+  #   - apf_heuristic_force
+  #   force_configs:
+  #     attractor_force:
+  #       k_gain: 10.0
+  #       k_stiffness_linear: 0.25
+  #       k_stiffness_angular: 0.00
+  #       k_damping_linear: 2.5
+  #       k_damping_angular: 0.00
+  #     apf_heuristic_force:
+  #       k_gain: 1.0
+  #       k_force: 1.0e-3
+  #       detect_shell_radius: 1.0
+  #       max_allowable_force: 100.0
 
 
   - mass: 1.0

@@ -5,6 +5,7 @@ percept_env/
 # data/stubs
 sample-data/
 eval/results/
+eval/saved/
 **/.old
 
 # building

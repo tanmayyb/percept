@@ -751,14 +751,15 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
      Output({'type': 'weights-content', 'index': dash.ALL}, 'children')],
     [Input({'type': 'suggest-weights-btn', 'index': dash.ALL}, 'n_clicks'),
      Input('ma-window-slider', 'value')],
-    State('data-store', 'data'),
+    [State('data-store', 'data'),
+     State({'type': 'weights-content', 'index': dash.ALL}, 'children')],
     prevent_initial_call=True
 )
-def suggest_weights(n_clicks, ma_window_index, stored_data):
+def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents):
     """Calculates and displays suggested weights in a collapsible section."""
     ctx = callback_context
     if not any(n_clicks) or not ctx.triggered:
-        return [False] * len(n_clicks), [""] * len(n_clicks)
+        return [False] * len(n_clicks), current_contents
 
     # Get the current MA window size
     try:
@@ -773,7 +774,7 @@ def suggest_weights(n_clicks, ma_window_index, stored_data):
     pattern = re.compile(r'{"index":(\d+),"type":"suggest-weights-btn"}')
     match = pattern.search(button_id)
     if not match:
-        return [False] * len(n_clicks), [""] * len(n_clicks)
+        return [False] * len(n_clicks), current_contents
     
     agent_id = int(match.group(1))
     
@@ -802,7 +803,7 @@ def suggest_weights(n_clicks, ma_window_index, stored_data):
         averages[component] = abs(ma)
 
     if not all_data_present:
-        return [False] * len(n_clicks), [""] * len(n_clicks)
+        return [False] * len(n_clicks), current_contents
 
     # Calculate weights (reciprocal of average, handling zeros)
     weights = {}
@@ -832,7 +833,7 @@ def suggest_weights(n_clicks, ma_window_index, stored_data):
 
     # Create list of outputs for all agents
     is_open_list = [False] * len(n_clicks)
-    content_list = [""] * len(n_clicks)
+    content_list = current_contents.copy()  # Preserve existing content
     
     # Set the values for the triggered agent
     for i, n in enumerate(n_clicks):

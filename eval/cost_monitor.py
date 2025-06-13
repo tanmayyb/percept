@@ -752,14 +752,15 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
     [Input({'type': 'suggest-weights-btn', 'index': dash.ALL}, 'n_clicks'),
      Input('ma-window-slider', 'value')],
     [State('data-store', 'data'),
-     State({'type': 'weights-content', 'index': dash.ALL}, 'children')],
+     State({'type': 'weights-content', 'index': dash.ALL}, 'children'),
+     State({'type': 'weights-collapse', 'index': dash.ALL}, 'is_open')],
     prevent_initial_call=True
 )
-def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents):
+def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents, current_states):
     """Calculates and displays suggested weights in a collapsible section."""
     ctx = callback_context
-    if not any(n_clicks) or not ctx.triggered:
-        return [False] * len(n_clicks), current_contents
+    if not ctx.triggered:
+        return current_states, current_contents
 
     # Get the current MA window size
     try:
@@ -770,21 +771,26 @@ def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents):
         logger.info("Invalid MA window index, using default")
         ma_window = DEFAULT_MA_WINDOW
 
-    button_id = ctx.triggered[0]['prop_id']
-    pattern = re.compile(r'{"index":(\d+),"type":"suggest-weights-btn"}')
-    match = pattern.search(button_id)
-    if not match:
-        return [False] * len(n_clicks), current_contents
-    
-    agent_id = int(match.group(1))
-    
+    # Find which button was clicked
+    triggered_id = None
+    if ctx.triggered:
+        prop_id = ctx.triggered[0]['prop_id']
+        if 'suggest-weights-btn' in prop_id:
+            pattern = re.compile(r'{"index":(\d+),"type":"suggest-weights-btn"}')
+            match = pattern.search(prop_id)
+            if match:
+                triggered_id = int(match.group(1))
+
+    if triggered_id is None:
+        return current_states, current_contents
+
     # These are the components used for weight calculation
     components_for_weights = [c for c in COST_COMPONENTS if c != 'cost']
     
     averages = {}
     all_data_present = True
     for component in components_for_weights:
-        log_path = get_log_file_path(agent_id, component)
+        log_path = get_log_file_path(triggered_id, component)
         data = list(stored_data.get(log_path, []))
         
         if len(data) < ma_window: # Not enough data for MA calculation
@@ -803,7 +809,7 @@ def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents):
         averages[component] = abs(ma)
 
     if not all_data_present:
-        return [False] * len(n_clicks), current_contents
+        return current_states, current_contents
 
     # Calculate weights (reciprocal of average, handling zeros)
     weights = {}
@@ -831,17 +837,18 @@ def suggest_weights(n_clicks, ma_window_index, stored_data, current_contents):
         ], className="table table-sm", style={'marginBottom': '0'})
     ]
 
-    # Create list of outputs for all agents
-    is_open_list = [False] * len(n_clicks)
-    content_list = current_contents.copy()  # Preserve existing content
+    # Create new lists for outputs
+    new_states = current_states.copy()
+    new_contents = current_contents.copy()
     
-    # Set the values for the triggered agent
+    # Find the index of the triggered agent
     for i, n in enumerate(n_clicks):
         if n is not None:
-            is_open_list[i] = True
-            content_list[i] = content
+            new_states[i] = True
+            new_contents[i] = content
+            break
 
-    return is_open_list, content_list
+    return new_states, new_contents
 
 @app.callback(
     [Output('pause-btn', 'style'),

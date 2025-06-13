@@ -32,6 +32,7 @@ COST_COMPONENTS = [
     "obstacle_distance_cost",
     "cost" # Total cost topic
 ]
+BEST_AGENT_TOPIC = "best_agent_name"  # New topic for best agent
 LOG_DIR = "results/cost_monitor"
 APP_LOG_FILE = os.path.join(LOG_DIR, "app.log")
 UPDATE_INTERVAL_MS = 2000  # 2 seconds
@@ -110,10 +111,52 @@ def parse_ros_message(content):
         logger.error(f"Error parsing message: {e}")
         return []
 
+def parse_best_agent_message(content):
+    """Parses timestamp and agent name from ROS2 topic echo output."""
+    try:
+        # Find timestamp and data pairs
+        pattern = r"\[(.*?)\].*?data:\s*([^\s]+)"
+        matches = re.findall(pattern, content)
+        # Strip 'cf_planner/' prefix from agent names
+        return [(datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f"), str(val).replace('cf_planner/', '')) for ts, val in matches]
+    except (ValueError, IndexError) as e:
+        logger.error(f"Error parsing best agent message: {e}")
+        return []
+
+def get_best_agent_log_file_path():
+    """Constructs the full path for the best agent log file."""
+    return os.path.join(LOG_DIR, f"best_agent.log")
+
 def start_ros_listener(agent_id, component, namespace):
     """Starts a 'ros2 topic echo' subprocess for a given topic."""
     log_path = get_log_file_path(agent_id, component)
     topic_name = f"{namespace}agent_{agent_id}/{component}"
+    
+    # Check if a process for this log file is already running and alive
+    if log_path in processes and processes[log_path].poll() is None:
+        logger.debug(f"Process already running for {topic_name}")
+        return # Process is already running
+        
+    # Command to echo the topic with timestamps and write to the log file
+    command = f"sh -c ': > {log_path} && ros2 topic echo {topic_name} --full-length | while read -r line; do echo \"[$(date +\"%Y-%m-%d %H:%M:%S.%N\" | cut -b1-23)] $line\"; done >> {log_path}'"
+    logger.debug(f"Starting command: {command}")
+
+    try:
+        # Start the subprocess
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        processes[log_path] = proc
+        logger.info(f"Started listener for {topic_name}")
+        
+        # Check if process started successfully
+        if proc.poll() is not None:
+            logger.error(f"Process failed to start for {topic_name}")
+    except Exception as e:
+        logger.error(f"Error starting listener for {topic_name}: {e}")
+
+def start_best_agent_listener(namespace):
+    """Starts a 'ros2 topic echo' subprocess for the best agent topic."""
+    log_path = get_best_agent_log_file_path()
+    topic_name = f"{namespace}{BEST_AGENT_TOPIC}"
     
     # Check if a process for this log file is already running and alive
     if log_path in processes and processes[log_path].poll() is None:
@@ -241,6 +284,7 @@ app.layout = html.Div([
         dbc.Card(
             dbc.CardBody([
                 dcc.Graph(id='total-costs-plot', style={'height': '300px'}),
+                dcc.Graph(id='best-agent-plot', style={'height': '200px'}),  # New best agent plot
                 dbc.Row([
                     dbc.Col([
                         dcc.Graph(id='trajectory-smoothness-plot', style={'height': '250px'}),
@@ -379,6 +423,7 @@ def handle_reset(n_clicks):
 @app.callback(
     [
         Output('total-costs-plot', 'figure'),
+        Output('best-agent-plot', 'figure'),  # New output
         Output('trajectory-smoothness-plot', 'figure'),
         Output('path-length-plot', 'figure'),
         Output('goal-distance-plot', 'figure'),
@@ -426,6 +471,9 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
         for i in range(1, n_agents + 1):
             for component in COST_COMPONENTS:
                 start_ros_listener(i, component, namespace)
+        
+        # Start best agent listener
+        start_best_agent_listener(namespace)
 
         # Read new data from logs
         for i in range(1, n_agents + 1):
@@ -452,6 +500,30 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
                         logger.info(f"No new data in {log_path}")
                 else:
                     logger.info(f"Log file not found: {log_path}")
+        
+        # Read best agent data
+        best_agent_log_path = get_best_agent_log_file_path()
+        if os.path.exists(best_agent_log_path):
+            mod_time = os.path.getmtime(best_agent_log_path)
+            if mod_time > file_last_read_time[best_agent_log_path]:
+                logger.info(f"Reading new data from {best_agent_log_path}")
+                with open(best_agent_log_path, 'r') as f:
+                    content = f.read()
+                
+                new_data = parse_best_agent_message(content)
+                logger.info(f"Parsed {len(new_data)} values from best agent")
+                
+                if best_agent_log_path not in stored_data:
+                    stored_data[best_agent_log_path] = deque(maxlen=MAX_DATA_POINTS)
+                
+                stored_data[best_agent_log_path].clear()
+                stored_data[best_agent_log_path].extend(new_data)
+                
+                file_last_read_time[best_agent_log_path] = mod_time
+            else:
+                logger.info(f"No new data in {best_agent_log_path}")
+        else:
+            logger.info(f"Log file not found: {best_agent_log_path}")
 
     # Convert deques to lists for JSON serialization
     serializable_data = {}
@@ -472,11 +544,11 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
     ma_cost_outputs = []
     ma_total_cost_outputs = []
 
-    latest_cost_ids = [item['id'] for item in ctx.outputs_list[5]]
-    total_cost_ids = [item['id'] for item in ctx.outputs_list[6]]
-    ma_cost_ids = [item['id'] for item in ctx.outputs_list[7]]
-    ma_total_cost_ids = [item['id'] for item in ctx.outputs_list[8]]
-    latest_costs_label_ids = [item['id'] for item in ctx.outputs_list[9]]
+    latest_cost_ids = [item['id'] for item in ctx.outputs_list[6]]
+    total_cost_ids = [item['id'] for item in ctx.outputs_list[7]]
+    ma_cost_ids = [item['id'] for item in ctx.outputs_list[8]]
+    ma_total_cost_ids = [item['id'] for item in ctx.outputs_list[9]]
+    latest_costs_label_ids = [item['id'] for item in ctx.outputs_list[10]]
 
     latest_cost_map = {f"{id['index']}": "-" for id in latest_cost_ids}
     total_cost_map = {id['index']: "-" for id in total_cost_ids}
@@ -538,6 +610,72 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
         )
     )
 
+    # Create best agent plot
+    best_agent_fig = go.Figure()
+    best_agent_log_path = get_best_agent_log_file_path()
+    best_agent_data = list(stored_data.get(best_agent_log_path, []))
+    if best_agent_data:
+        timestamps, agent_names = zip(*best_agent_data)
+        # Create a mapping of agent names to numeric values for plotting
+        unique_agents = list(set(agent_names))
+        agent_to_num = {agent: i for i, agent in enumerate(unique_agents)}
+        numeric_values = [agent_to_num[agent] for agent in agent_names]
+        
+        # Create step-like visualization using hv lines
+        for i in range(len(timestamps) - 1):
+            # Add horizontal line
+            best_agent_fig.add_trace(go.Scattergl(
+                x=[timestamps[i], timestamps[i + 1]],
+                y=[numeric_values[i], numeric_values[i]],
+                mode='lines',
+                line=dict(color='blue', width=2),
+                showlegend=False
+            ))
+            # Add vertical line
+            best_agent_fig.add_trace(go.Scattergl(
+                x=[timestamps[i + 1], timestamps[i + 1]],
+                y=[numeric_values[i], numeric_values[i + 1]],
+                mode='lines',
+                line=dict(color='blue', width=2),
+                showlegend=False
+            ))
+        
+        # Add markers at each point
+        best_agent_fig.add_trace(go.Scattergl(
+            x=timestamps,
+            y=numeric_values,
+            mode='markers',
+            marker=dict(
+                size=8,
+                color='blue',
+                symbol='circle'
+            ),
+            name='Best Agent'
+        ))
+        
+        # Update y-axis to show agent names
+        best_agent_fig.update_layout(
+            yaxis=dict(
+                ticktext=unique_agents,
+                tickvals=list(range(len(unique_agents))),
+                tickangle=0
+            )
+        )
+
+    best_agent_fig.update_layout(
+        title=dict(
+            text="Current Best Agent",
+            y=0.95
+        ),
+        xaxis_title="Time",
+        yaxis_title="Agent",
+        template='plotly_white',
+        margin=dict(l=40, r=20, t=40, b=20),
+        height=200,
+        title_font_size=12,
+        showlegend=False
+    )
+
     # Create component plots with all agents
     component_plots = {}
     for component in ['trajectory_smoothness_cost', 'path_length_cost', 'goal_distance_cost', 'obstacle_distance_cost']:
@@ -594,6 +732,7 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
 
     return (
         total_costs_fig,
+        best_agent_fig,
         component_plots['trajectory_smoothness_cost'],
         component_plots['path_length_cost'],
         component_plots['goal_distance_cost'],
@@ -759,11 +898,29 @@ def export_data(n_clicks, stored_data, n_agents):
         if agent_data:
             export_dict[f'agent_{i}'] = agent_data
 
+    # Add best agent data
+    best_agent_log_path = get_best_agent_log_file_path()
+    best_agent_data = list(stored_data.get(best_agent_log_path, []))
+    if best_agent_data:
+        timestamps = np.array([ts for ts, _ in best_agent_data])
+        agent_names = np.array([name for _, name in best_agent_data])
+        export_dict['best_agent'] = {
+            'timestamps': timestamps,
+            'agent_names': agent_names,
+            'metadata': {
+                'description': 'Current best agent over time',
+                'format': 'agent_X where X is the agent number'
+            }
+        }
+        logger.info(f"Exporting best agent data with {len(timestamps)} points")
+
     # Add metadata
     export_dict['metadata'] = {
         'export_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'n_agents': n_agents,
-        'components': COST_COMPONENTS
+        'components': COST_COMPONENTS,
+        'has_best_agent_data': best_agent_log_path in stored_data,
+        'best_agent_format': 'agent_X'  # Document the format of best agent names
     }
 
     # Create a buffer to store the numpy archive
@@ -811,7 +968,7 @@ def handle_upload(contents, filename, current_data):
         
         # Process each agent's data
         for key in data.files:
-            if key == 'metadata':
+            if key == 'metadata' or key == 'best_agent':
                 continue
                 
             agent_id = int(key.split('_')[1])
@@ -838,6 +995,25 @@ def handle_upload(contents, filename, current_data):
                         list(zip(timestamps, values)),
                         maxlen=MAX_DATA_POINTS
                     )
+        
+        # Process best agent data if present
+        if 'best_agent' in data.files:
+            best_agent_data = data['best_agent'].item()
+            timestamps = best_agent_data['timestamps']
+            agent_names = best_agent_data['agent_names']
+            
+            # Convert timestamps to datetime objects if they're strings
+            if isinstance(timestamps[0], str):
+                timestamps = [datetime.fromisoformat(ts) for ts in timestamps]
+            elif isinstance(timestamps[0], np.datetime64):
+                timestamps = [pd.Timestamp(ts).to_pydatetime() for ts in timestamps]
+            
+            # Store the best agent data
+            best_agent_log_path = get_best_agent_log_file_path()
+            new_data[best_agent_log_path] = deque(
+                list(zip(timestamps, agent_names)),
+                maxlen=MAX_DATA_POINTS
+            )
         
         logger.info(f"Processed data for {max_agent_id} agents")
         logger.debug(f"Number of data points in store: {sum(len(v) for v in new_data.values())}")

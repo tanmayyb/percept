@@ -9,10 +9,14 @@ import time
 from collections import deque, defaultdict
 import numpy as np
 from datetime import datetime
+import io
+import base64
 
 """
 Launch chrome with the following flag to avoid webgl context issues:
 --max-active-webgl-contexts=32
+Run this program using:
+python cost_monitor.py --port 8050
 """
 
 # --- Configuration ---
@@ -131,6 +135,7 @@ app.layout = html.Div([
     # dcc.Store components to hold state across callbacks
     dcc.Store(id='n-agents-store', data=1), # Start with 1 agent
     dcc.Store(id='data-store', data={}), # Holds all time-series data
+    dcc.Download(id='download-dataframe'), # For downloading the exported data
 
     # Header section
     html.Div([
@@ -157,6 +162,7 @@ app.layout = html.Div([
             dbc.Button("Reset Data", id="reset-btn", color="danger", className="me-1"),
             dbc.Button("⏸ Pause", id="pause-btn", color="info", className="me-1"),
             dbc.Button("▶ Play", id="play-btn", color="info", className="me-1", style={'display': 'none'}),
+            dbc.Button("📥 Export Data", id="export-btn", color="primary", className="me-1"),
         ], style={'display': 'flex', 'alignItems': 'center'})
     ], style={
         'backgroundColor': 'orange', 'padding': '10px', 'display': 'flex',
@@ -646,6 +652,58 @@ def toggle_pause_play(pause_clicks, play_clicks):
     else:  # play-btn
         is_paused = False
         return {'display': 'inline-block'}, {'display': 'none'}
+
+@app.callback(
+    Output('download-dataframe', 'data'),
+    Input('export-btn', 'n_clicks'),
+    State('data-store', 'data'),
+    State('n-agents-store', 'data'),
+    prevent_initial_call=True
+)
+def export_data(n_clicks, stored_data, n_agents):
+    """Exports the current data to a numpy archive file."""
+    if not n_clicks or not stored_data:
+        raise dash.exceptions.PreventUpdate
+
+    # Create a nested dictionary to store the data
+    export_dict = {}
+    
+    # Process data for each agent and component
+    for i in range(1, n_agents + 1):
+        agent_data = {}
+        for component in COST_COMPONENTS:
+            log_path = get_log_file_path(i, component)
+            data = list(stored_data.get(log_path, []))
+            if data:
+                # Convert timestamps and values to numpy arrays
+                timestamps = np.array([ts for ts, _ in data])
+                values = np.array([val for _, val in data])
+                agent_data[component] = {
+                    'timestamps': timestamps,
+                    'values': values
+                }
+        if agent_data:
+            export_dict[f'agent_{i}'] = agent_data
+
+    # Add metadata
+    export_dict['metadata'] = {
+        'export_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'n_agents': n_agents,
+        'components': COST_COMPONENTS
+    }
+
+    # Create a buffer to store the numpy archive
+    buffer = io.BytesIO()
+    
+    # Save the dictionary to the buffer
+    np.savez_compressed(buffer, **export_dict)
+    
+    # Get the current timestamp for the filename
+    timestamp = datetime.now().strftime('%y%m%d-%H%M%S')
+    filename = f"{timestamp}-cost_export.npz"
+    
+    # Return the data for download
+    return dcc.send_bytes(buffer.getvalue(), filename)
 
 # --- Main Execution ---
 if __name__ == '__main__':

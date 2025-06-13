@@ -333,7 +333,9 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
     """The main callback to read data, update plots, and manage subprocesses."""
     global is_paused
     
-    if is_paused:
+    # Only check pause state for interval updates
+    ctx = callback_context
+    if ctx.triggered and ctx.triggered[0]['prop_id'] == 'interval-component.n_intervals' and is_paused:
         raise dash.exceptions.PreventUpdate
     
     print(f"\nUpdate triggered - Interval: {n}, Agents: {n_agents}")

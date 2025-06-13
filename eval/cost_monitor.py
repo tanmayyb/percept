@@ -11,6 +11,9 @@ import numpy as np
 from datetime import datetime
 import io
 import base64
+import pandas as pd
+import logging
+from logging.handlers import RotatingFileHandler
 
 """
 Launch chrome with the following flag to avoid webgl context issues:
@@ -30,11 +33,53 @@ COST_COMPONENTS = [
     "cost" # Total cost topic
 ]
 LOG_DIR = "results/cost_monitor"
+APP_LOG_FILE = os.path.join(LOG_DIR, "app.log")
 UPDATE_INTERVAL_MS = 2000  # 2 seconds
 MAX_DATA_POINTS = 200 # Max points to store and plot per topic
 WEIGHT_SUGGESTION_POINTS = 100 # Number of recent points to use for weight suggestion
 MA_WINDOW_OPTIONS = [10, 50, 100, 200]  # Available MA window sizes
 DEFAULT_MA_WINDOW = 50  # Default MA window size
+
+# --- Logging Setup ---
+def setup_logger():
+    """Sets up the application logger."""
+    # Create log directory if it doesn't exist
+    os.makedirs(LOG_DIR, exist_ok=True)
+    
+    # Clear the log file if it exists
+    if os.path.exists(APP_LOG_FILE):
+        open(APP_LOG_FILE, 'w').close()
+    
+    # Create logger
+    logger = logging.getLogger('cost_monitor')
+    logger.setLevel(logging.DEBUG)
+    
+    # Create file handler
+    file_handler = RotatingFileHandler(
+        APP_LOG_FILE,
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
+    )
+    file_handler.setLevel(logging.DEBUG)
+    
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+# Initialize logger
+logger = setup_logger()
+logger.info("Cost Monitor application starting")
 
 # --- Global State Management ---
 # It's generally better to use dcc.Store for state in Dash, but for subprocesses
@@ -48,6 +93,7 @@ is_paused = False  # Global state to track if updates are paused
 def ensure_log_dir():
     """Creates the log directory if it doesn't exist."""
     os.makedirs(LOG_DIR, exist_ok=True)
+    logger.debug("Ensured log directory exists")
 
 def get_log_file_path(agent_id, component):
     """Constructs the full path for a log file."""
@@ -61,7 +107,7 @@ def parse_ros_message(content):
         matches = re.findall(pattern, content)
         return [(datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f"), float(val)) for ts, val in matches]
     except (ValueError, IndexError) as e:
-        print(f"Error parsing message: {e}")
+        logger.error(f"Error parsing message: {e}")
         return []
 
 def start_ros_listener(agent_id, component, namespace):
@@ -71,24 +117,24 @@ def start_ros_listener(agent_id, component, namespace):
     
     # Check if a process for this log file is already running and alive
     if log_path in processes and processes[log_path].poll() is None:
-        print(f"Process already running for {topic_name}")
+        logger.debug(f"Process already running for {topic_name}")
         return # Process is already running
         
     # Command to echo the topic with timestamps and write to the log file
     command = f"sh -c ': > {log_path} && ros2 topic echo {topic_name} --full-length | while read -r line; do echo \"[$(date +\"%Y-%m-%d %H:%M:%S.%N\" | cut -b1-23)] $line\"; done >> {log_path}'"
-    print(f"Starting command: {command}")
+    logger.debug(f"Starting command: {command}")
 
     try:
         # Start the subprocess
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         processes[log_path] = proc
-        print(f"Started listener for {topic_name}")
+        logger.info(f"Started listener for {topic_name}")
         
         # Check if process started successfully
         if proc.poll() is not None:
-            print(f"ERROR: Process failed to start for {topic_name}")
+            logger.error(f"Process failed to start for {topic_name}")
     except Exception as e:
-        print(f"Error starting listener for {topic_name}: {e}")
+        logger.error(f"Error starting listener for {topic_name}: {e}")
 
 def stop_all_listeners():
     """Terminates all running subprocesses."""
@@ -97,12 +143,12 @@ def stop_all_listeners():
             try:
                 proc.terminate()
                 proc.wait(timeout=1) # Wait for the process to terminate
-                print(f"Stopped listener for {log_path}")
+                logger.info(f"Stopped listener for {log_path}")
             except subprocess.TimeoutExpired:
                 proc.kill() # Force kill if it doesn't terminate gracefully
-                print(f"Force-killed listener for {log_path}")
+                logger.warning(f"Force-killed listener for {log_path}")
             except Exception as e:
-                print(f"Error stopping listener for {log_path}: {e}")
+                logger.error(f"Error stopping listener for {log_path}: {e}")
     processes.clear()
 
 def reset_logs():
@@ -117,7 +163,7 @@ def reset_logs():
                     os.remove(log_path)
     ensure_log_dir()
     # The main callback loop will automatically restart the listeners.
-    print("All logs cleared and listeners stopped. They will restart on the next interval.")
+    logger.info("All logs cleared and listeners stopped. They will restart on the next interval.")
 
 def calculate_moving_average(data, window_size=10):
     """Calculate moving average of a data series."""
@@ -163,6 +209,26 @@ app.layout = html.Div([
             dbc.Button("⏸ Pause", id="pause-btn", color="info", className="me-1"),
             dbc.Button("▶ Play", id="play-btn", color="info", className="me-1", style={'display': 'none'}),
             dbc.Button("📥 Export Data", id="export-btn", color="primary", className="me-1"),
+            dcc.Upload(
+                id='upload-data',
+                children=html.Div([
+                    '📂 Upload NPZ',
+                ]),
+                style={
+                    'width': '100px',
+                    'height': '36px',
+                    'lineHeight': '36px',
+                    'borderWidth': '1px',
+                    'borderStyle': 'dashed',
+                    'borderRadius': '5px',
+                    'textAlign': 'center',
+                    'margin': '0px',
+                    'backgroundColor': '#007bff',
+                    'color': 'white',
+                    'cursor': 'pointer'
+                },
+                multiple=False
+            ),
         ], style={'display': 'flex', 'alignItems': 'center'})
     ], style={
         'backgroundColor': 'orange', 'padding': '10px', 'display': 'flex',
@@ -305,6 +371,7 @@ def generate_agent_sections(n_agents):
 )
 def handle_reset(n_clicks):
     """Resets all logs and data."""
+    logger.info("Resetting all data")
     reset_logs()
     # Clear the data store
     return {}
@@ -333,66 +400,69 @@ def update_data_and_plots(n, ma_window_index, n_agents, namespace, stored_data):
     """The main callback to read data, update plots, and manage subprocesses."""
     global is_paused
     
-    # Only check pause state for interval updates
-    ctx = callback_context
-    if ctx.triggered and ctx.triggered[0]['prop_id'] == 'interval-component.n_intervals' and is_paused:
-        raise dash.exceptions.PreventUpdate
+    logger.info(f"\nUpdate triggered - Interval: {n}, Agents: {n_agents}")
     
-    print(f"\nUpdate triggered - Interval: {n}, Agents: {n_agents}")
-    
+    # Calculate MA window size
     try:
         ma_window_index = int(ma_window_index) if ma_window_index is not None else MA_WINDOW_OPTIONS.index(DEFAULT_MA_WINDOW)
         ma_window_index = max(0, min(ma_window_index, len(MA_WINDOW_OPTIONS) - 1))
         ma_window = MA_WINDOW_OPTIONS[ma_window_index]
     except (ValueError, TypeError, IndexError):
-        print("Invalid MA window index, using default")
+        logger.info("Invalid MA window index, using default")
         ma_window = DEFAULT_MA_WINDOW
     
     if stored_data is None:
         stored_data = {}
-        print("Initialized empty data store")
+        logger.info("Initialized empty data store")
+    
+    # Only check pause state for interval updates
+    ctx = callback_context
+    if ctx.triggered and ctx.triggered[0]['prop_id'] == 'interval-component.n_intervals':
+        if is_paused:
+            logger.info("Update prevented due to pause state")
+            raise dash.exceptions.PreventUpdate
+            
+        # Start/Check ROS Listeners
+        for i in range(1, n_agents + 1):
+            for component in COST_COMPONENTS:
+                start_ros_listener(i, component, namespace)
 
-    # Start/Check ROS Listeners
-    for i in range(1, n_agents + 1):
-        for component in COST_COMPONENTS:
-            start_ros_listener(i, component, namespace)
-
-    # Read new data from logs
-    for i in range(1, n_agents + 1):
-        for component in COST_COMPONENTS:
-            log_path = get_log_file_path(i, component)
-            if os.path.exists(log_path):
-                mod_time = os.path.getmtime(log_path)
-                if mod_time > file_last_read_time[log_path]:
-                    print(f"Reading new data from {log_path}")
-                    with open(log_path, 'r') as f:
-                        content = f.read()
-                    
-                    new_data = parse_ros_message(content)
-                    print(f"Parsed {len(new_data)} values from {component}")
-                    
-                    if log_path not in stored_data:
-                        stored_data[log_path] = deque(maxlen=MAX_DATA_POINTS)
-                    
-                    stored_data[log_path].clear()
-                    stored_data[log_path].extend(new_data)
-                    
-                    file_last_read_time[log_path] = mod_time
+        # Read new data from logs
+        for i in range(1, n_agents + 1):
+            for component in COST_COMPONENTS:
+                log_path = get_log_file_path(i, component)
+                if os.path.exists(log_path):
+                    mod_time = os.path.getmtime(log_path)
+                    if mod_time > file_last_read_time[log_path]:
+                        logger.info(f"Reading new data from {log_path}")
+                        with open(log_path, 'r') as f:
+                            content = f.read()
+                        
+                        new_data = parse_ros_message(content)
+                        logger.info(f"Parsed {len(new_data)} values from {component}")
+                        
+                        if log_path not in stored_data:
+                            stored_data[log_path] = deque(maxlen=MAX_DATA_POINTS)
+                        
+                        stored_data[log_path].clear()
+                        stored_data[log_path].extend(new_data)
+                        
+                        file_last_read_time[log_path] = mod_time
+                    else:
+                        logger.info(f"No new data in {log_path}")
                 else:
-                    print(f"No new data in {log_path}")
-            else:
-                print(f"Log file not found: {log_path}")
+                    logger.info(f"Log file not found: {log_path}")
 
     # Convert deques to lists for JSON serialization
     serializable_data = {}
     for k, v in stored_data.items():
         try:
-            serializable_data[k] = [(ts.isoformat(), val) for ts, val in v]
+            serializable_data[k] = [(ts.isoformat() if isinstance(ts, datetime) else ts, val) for ts, val in v]
         except AttributeError:
             # If timestamps are already strings, use them as is
             serializable_data[k] = [(ts, val) for ts, val in v]
         except Exception as e:
-            print(f"Error serializing data for {k}: {e}")
+            logger.error(f"Error serializing data for {k}: {e}")
             serializable_data[k] = []
 
     # Prepare outputs for Dash
@@ -557,7 +627,7 @@ def suggest_weights(n_clicks, ma_window_index, stored_data):
         ma_window_index = max(0, min(ma_window_index, len(MA_WINDOW_OPTIONS) - 1))
         ma_window = MA_WINDOW_OPTIONS[ma_window_index]
     except (ValueError, TypeError, IndexError):
-        print("Invalid MA window index, using default")
+        logger.info("Invalid MA window index, using default")
         ma_window = DEFAULT_MA_WINDOW
 
     button_id = ctx.triggered[0]['prop_id']
@@ -650,9 +720,11 @@ def toggle_pause_play(pause_clicks, play_clicks):
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if button_id == 'pause-btn':
         is_paused = True
+        logger.info("Application paused")
         return {'display': 'none'}, {'display': 'inline-block'}
     else:  # play-btn
         is_paused = False
+        logger.info("Application resumed")
         return {'display': 'inline-block'}, {'display': 'none'}
 
 @app.callback(
@@ -707,11 +779,96 @@ def export_data(n_clicks, stored_data, n_agents):
     # Return the data for download
     return dcc.send_bytes(buffer.getvalue(), filename)
 
+@app.callback(
+    [Output('data-store', 'data', allow_duplicate=True),
+     Output('n-agents-store', 'data', allow_duplicate=True),
+     Output('interval-component', 'n_intervals')],
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    State('data-store', 'data'),
+    prevent_initial_call=True
+)
+def handle_upload(contents, filename, current_data):
+    """Handles uploaded NPZ files and updates the data store."""
+    logger.info(f"Upload callback triggered with filename: {filename}")
+    
+    if contents is None:
+        logger.warning("No contents in upload")
+        raise dash.exceptions.PreventUpdate
+
+    # Decode the uploaded file
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
+    
+    try:
+        # Load the NPZ file
+        data = np.load(io.BytesIO(decoded), allow_pickle=True)
+        logger.info(f"Loaded NPZ file with keys: {data.files}")
+        
+        # Initialize new data store
+        new_data = current_data.copy() if current_data is not None else {}
+        max_agent_id = 0
+        
+        # Process each agent's data
+        for key in data.files:
+            if key == 'metadata':
+                continue
+                
+            agent_id = int(key.split('_')[1])
+            max_agent_id = max(max_agent_id, agent_id)
+            logger.debug(f"Processing agent {agent_id}")
+            
+            agent_data = data[key].item()  # Convert numpy array to dictionary
+            for component in COST_COMPONENTS:
+                if component in agent_data:
+                    log_path = get_log_file_path(agent_id, component)
+                    timestamps = agent_data[component]['timestamps']
+                    values = agent_data[component]['values']
+                    
+                    logger.debug(f"Processing {component} with {len(timestamps)} data points")
+                    
+                    # Convert timestamps to datetime objects if they're strings
+                    if isinstance(timestamps[0], str):
+                        timestamps = [datetime.fromisoformat(ts) for ts in timestamps]
+                    elif isinstance(timestamps[0], np.datetime64):
+                        timestamps = [pd.Timestamp(ts).to_pydatetime() for ts in timestamps]
+                    
+                    # Store the data
+                    new_data[log_path] = deque(
+                        list(zip(timestamps, values)),
+                        maxlen=MAX_DATA_POINTS
+                    )
+        
+        logger.info(f"Processed data for {max_agent_id} agents")
+        logger.debug(f"Number of data points in store: {sum(len(v) for v in new_data.values())}")
+        
+        # Convert deques to lists and ensure datetime serialization
+        serializable_data = {}
+        for log_path, data_deque in new_data.items():
+            serializable_data[log_path] = [
+                (ts.isoformat() if isinstance(ts, datetime) else ts, val)
+                for ts, val in data_deque
+            ]
+        
+        # Force a refresh by incrementing the interval counter
+        current_interval = dash.callback_context.outputs_list[2].get('value', 0)
+        new_interval = current_interval + 1
+        logger.debug(f"Current interval: {current_interval}, New interval: {new_interval}")
+        
+        return serializable_data, max_agent_id, new_interval
+        
+    except Exception as e:
+        logger.error(f"Error processing uploaded file: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise dash.exceptions.PreventUpdate
+
 # --- Main Execution ---
 if __name__ == '__main__':
     try:
+        logger.info("Starting Cost Monitor application")
         app.run(host='0.0.0.0', port=8050, debug=True)
     finally:
         # Ensure all subprocesses are cleaned up when the app is closed
-        print("\nShutting down... stopping all ROS listeners.")
+        logger.info("Shutting down... stopping all ROS listeners.")
         stop_all_listeners()

@@ -48,6 +48,11 @@ class MetricsReader:
 		self.best_agent = []
 		self.agent_planning_times = []
 		self.agent_costs = []
+		self.agent_trajectory_smoothness_costs = []
+		self.agent_path_length_costs = []
+		self.agent_goal_distance_costs = []
+		self.agent_obstacle_distance_costs = []
+		
 		def process_record(record):
 			if record is None:
 				return None
@@ -67,6 +72,14 @@ class MetricsReader:
 			elif result['type'] == 'agent_planning_time':
 				result['data'] = record
 			elif result['type'] == 'agent_cost':
+				result['data'] = record
+			elif result['type'] == 'agent_trajectory_smoothness_cost':
+				result['data'] = record
+			elif result['type'] == 'agent_path_length_cost':
+				result['data'] = record
+			elif result['type'] == 'agent_goal_distance_cost':
+				result['data'] = record
+			elif result['type'] == 'agent_obstacle_distance_cost':
 				result['data'] = record
 			return result
 
@@ -94,6 +107,14 @@ class MetricsReader:
 						self.agent_planning_times.append(result['data'])
 					elif result['type'] == 'agent_cost':
 						self.agent_costs.append(result['data'])
+					elif result['type'] == 'agent_trajectory_smoothness_cost':
+						self.agent_trajectory_smoothness_costs.append(result['data'])
+					elif result['type'] == 'agent_path_length_cost':
+						self.agent_path_length_costs.append(result['data'])
+					elif result['type'] == 'agent_goal_distance_cost':
+						self.agent_goal_distance_costs.append(result['data'])
+					elif result['type'] == 'agent_obstacle_distance_cost':
+						self.agent_obstacle_distance_costs.append(result['data'])
 		# convert to pandas dataframe
 		self.filename = self.filepath.name
 		self.agent_poses = pd.DataFrame(self.agent_poses)
@@ -102,6 +123,11 @@ class MetricsReader:
 		self.best_agent = pd.DataFrame(self.best_agent)
 		self.agent_planning_times = pd.DataFrame(self.agent_planning_times)
 		self.agent_costs = pd.DataFrame(self.agent_costs)
+		self.agent_trajectory_smoothness_costs = pd.DataFrame(self.agent_trajectory_smoothness_costs)
+		self.agent_path_length_costs = pd.DataFrame(self.agent_path_length_costs)
+		self.agent_goal_distance_costs = pd.DataFrame(self.agent_goal_distance_costs)
+		self.agent_obstacle_distance_costs = pd.DataFrame(self.agent_obstacle_distance_costs)
+
 		self.info = None
 
 

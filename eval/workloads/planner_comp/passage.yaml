@@ -66,32 +66,37 @@ percept_config:
   fields_config:
     agent_radius: 0.020
     mass_radius: 0.020
-    potential_detect_shell_rad: 0.25
+    potential_detect_shell_rad: 0.66
     show_processing_delay: false
     show_requests: false
     use_cpu: false
 planner_config:
   experiment_type: oriented_pointmass
   loop_frequency: 1000
-  service_timeout: 5000
-  # delta_t: 0.010
+  service_timeout: 2500
   delta_t: 0.020
-  # max_prediction_steps: 100
-  max_prediction_steps: 100
+  max_prediction_steps: 200
   planning_frequency: 30
   agent_switch_factor: 1.0
 
-  # path_length_cost_weight: 0.0
-  # goal_distance_cost_weight: 0.0
-  # obstacle_distance_cost_weight: 0.0
-  trajectory_smoothness_cost_weight: 0.0
 
-  # aim for all under 10.0
-  path_length_cost_weight: 0.80 # <2.0
-  goal_distance_cost_weight: 1.0e-01 # 100-500
-  obstacle_distance_cost_weight: 0.25e-01 # 10-100
-  # trajectory_smoothness_cost_weight: 1.0e+05 # 1.0e+05 # in the 10s
-  
+  # path_length_cost_weight: 1.0
+  # obstacle_distance_cost_weight: 1.0
+  # trajectory_smoothness_cost_weight: 1.0
+  # goal_distance_cost_weight: 1.0
+
+  # # normalized
+  # path_length_cost_weight: 1.0
+  # obstacle_distance_cost_weight: 6.25e-4
+  # trajectory_smoothness_cost_weight: 5.0e+3
+  # goal_distance_cost_weight: 2.0e-1
+
+  # normalized
+  path_length_cost_weight: 1.0
+  obstacle_distance_cost_weight: 6.25e-4
+  trajectory_smoothness_cost_weight: 5.0e+3
+  goal_distance_cost_weight: 90.0
+
   publish_trajectory: true
   poses:
     start_pos:  [0.0, -2.0, 0.0]
@@ -99,24 +104,70 @@ planner_config:
     start_orientation: [1.0, 0.0, 0.0, 0.0]
     goal_orientation: [1.0, 0.0, 0.0, 0.0]
   agents:
-  - mass: 1.0
+
+# -------------------------------- unstable planners --------------------------------
+
+  # around 4.10 gain in this config the planner gets unstable
+  # - mass: 0.10
+  #   radius: 0.020
+  #   max_velocity: 0.010
+  #   approach_distance: 0.010
+  #   force_list:
+  #   - attractor_force
+  #   - apf_heuristic_force
+  #   force_configs:
+  #     attractor_force:
+  #       k_gain: 4.10
+  #       k_stiffness_linear: 0.10
+  #       k_stiffness_angular: 0.00
+  #       k_damping_linear: 10.0
+  #       k_damping_angular: 0.00
+  #     apf_heuristic_force:
+  #       k_gain: 0.0
+  #       k_force: 1.0e-3
+  #       detect_shell_radius: 1.75
+  #       max_allowable_force: 100.0
+
+  # - mass: 0.10
+  #   radius: 0.020
+  #   max_velocity: 0.50
+  #   approach_distance: 0.010
+  #   force_list:
+  #   - attractor_force
+  #   - apf_heuristic_force
+  #   force_configs:
+  #     attractor_force:
+  #       k_gain: 8.1
+  #       k_stiffness_linear: 0.50
+  #       k_stiffness_angular: 0.00
+  #       k_damping_linear: 5.0
+  #       k_damping_angular: 0.00
+  #     apf_heuristic_force:
+  #       k_gain: 0.0
+  #       k_force: 0.0
+  #       detect_shell_radius: 1.75
+  #       max_allowable_force: 100.0
+
+# -------------------------------- stable planners --------------------------------
+
+  - mass: 0.10
     radius: 0.020
-    max_velocity: 0.010
-    approach_distance: 0.25
+    max_velocity: 0.50
+    approach_distance: 0.010
     force_list:
     - attractor_force
     - apf_heuristic_force
     force_configs:
       attractor_force:
-        k_gain: 2.0
-        k_stiffness_linear: 1.0
+        k_gain: 3.0
+        k_stiffness_linear: 1.250
         k_stiffness_angular: 0.00
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
+        k_damping_linear: 4.0
+        k_damping_angular: 0.00
       apf_heuristic_force:
-        k_gain: 2.5
-        k_force: 2.5e-4
-        detect_shell_radius: 3.0
+        k_gain: 1.0
+        k_force: 2.5e-3
+        detect_shell_radius: 1.50
         max_allowable_force: 100.0
 
   # tight

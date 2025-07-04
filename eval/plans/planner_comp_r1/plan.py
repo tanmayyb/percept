@@ -38,7 +38,6 @@ base_args = {
   # fields config
   "agent_radius": 0.020,
   "mass_radius": 0.020,
-  "potential_detect_shell_rad": 0.25,
 
   # pose config
   "poses": {
@@ -62,9 +61,9 @@ experiment_args = {
 
 scene_ids = {
   # 0: 'htw',
-  # 1: 'passage',
+  1: 'passage',
   # 2: 'trap',
-  3: 'cluttered'
+  # 3: 'cluttered'
 }
 
 planner_ids = {
@@ -248,9 +247,100 @@ known_agent_configs = {
     'multi': []
   },
   'passage': {
-    'apf': [],
-    'mfi': [],
-    'multi': []
+    'apf': [
+      AgentConfig(
+        mass=0.10,
+        radius=0.020,
+        max_velocity=0.50,
+        approach_distance=0.010,
+        force_list=["attractor_force", "apf_heuristic_force"],
+        force_configs={
+          "attractor_force": {
+            "k_gain": 3.0,
+            "k_stiffness_linear": 1.250,
+            "k_stiffness_angular": 0.00,
+            "k_damping_linear": 4.0,
+            "k_damping_angular": 0.00
+          },
+          "apf_heuristic_force": {
+            "k_gain": 1.0,
+            "k_force": 2.5e-3,
+            "detect_shell_radius": 1.50,
+            "max_allowable_force": 100.0
+          }
+        }
+      )
+    ],
+    'mfi': [
+      AgentConfig(
+        mass=1.0,
+        radius=0.020,
+        max_velocity=0.010,
+        approach_distance=0.25,
+        force_list=["attractor_force", "velocity_heuristic_force"],
+        force_configs={
+          "attractor_force": {
+            "k_gain": 1.5,
+            "k_stiffness_linear": 1.0,
+            "k_stiffness_angular": 0.00,
+            "k_damping_linear": 2.5,
+            "k_damping_angular": 0.025
+          },
+          "velocity_heuristic_force": {
+            "k_gain": 2.5,
+            "k_force": 1.0e-2,
+            "detect_shell_radius": 0.5,
+            "max_allowable_force": 100.0
+          }
+        }
+      )
+    ],
+    'multi': [
+      AgentConfig(
+        mass=0.10,
+        radius=0.020,
+        max_velocity=0.50,
+        approach_distance=0.010,
+        force_list=["attractor_force", "apf_heuristic_force"],
+        force_configs={
+          "attractor_force": {
+            "k_gain": 3.0,
+            "k_stiffness_linear": 1.250,
+            "k_stiffness_angular": 0.00,
+            "k_damping_linear": 4.0,
+            "k_damping_angular": 0.00
+          },
+          "apf_heuristic_force": {
+            "k_gain": 1.0,
+            "k_force": 2.5e-3,
+            "detect_shell_radius": 1.50,
+            "max_allowable_force": 100.0
+          }
+        }
+      ),
+      AgentConfig(
+        mass=1.0,
+        radius=0.020,
+        max_velocity=0.010,
+        approach_distance=0.25,
+        force_list=["attractor_force", "velocity_heuristic_force"],
+        force_configs={
+          "attractor_force": {
+            "k_gain": 1.5,
+            "k_stiffness_linear": 1.0,
+            "k_stiffness_angular": 0.00,
+            "k_damping_linear": 2.5,
+            "k_damping_angular": 0.025
+          },
+          "velocity_heuristic_force": {
+            "k_gain": 2.5,
+            "k_force": 1.0e-2,
+            "detect_shell_radius": 0.5,
+            "max_allowable_force": 100.0
+          }
+        }
+      )
+    ]
   },
   'trap': {
     'apf': [],
@@ -363,13 +453,15 @@ known_planner_configs = {
   "obstacle_distance_cost_weight": 1.0,
   "trajectory_smoothness_cost_weight": 1.0,
   "max_prediction_steps": 100,
+  "potential_detect_shell_rad": 0.25,
 },
 "passage": {
-  "path_length_cost_weight": 0.80,
-  "goal_distance_cost_weight": 1.0e-01,
-  "obstacle_distance_cost_weight": 0.25e-01,
-  "trajectory_smoothness_cost_weight": 0.0,
-  "max_prediction_steps": 100,
+  "path_length_cost_weight": 1.0,
+  "goal_distance_cost_weight": 90.0,
+  "obstacle_distance_cost_weight": 6.25e-4,
+  "trajectory_smoothness_cost_weight": 5.0e+3,
+  "max_prediction_steps": 200,
+  "potential_detect_shell_rad": 0.66,
 },
 "trap": {
   "path_length_cost_weight": 1.0,
@@ -377,6 +469,7 @@ known_planner_configs = {
   "obstacle_distance_cost_weight": 1.0e-01,
   "trajectory_smoothness_cost_weight": 1.0e+05,
   "max_prediction_steps": 100,
+  "potential_detect_shell_rad": 0.25,
 },
 "cluttered": {
   "path_length_cost_weight": 1.0,
@@ -384,6 +477,7 @@ known_planner_configs = {
   "obstacle_distance_cost_weight": 5.0,
   "trajectory_smoothness_cost_weight": 5.0e+3,
   "max_prediction_steps": 50,
+  "potential_detect_shell_rad": 0.25,
 },
 }
 
@@ -411,7 +505,7 @@ def get_base_workload():
       fields_config=FieldsConfig(
         agent_radius=base_args["agent_radius"],
         mass_radius=base_args["mass_radius"],
-        potential_detect_shell_rad=base_args["potential_detect_shell_rad"],
+        potential_detect_shell_rad=0.0, # populate
         show_processing_delay=False,
         show_requests=False,
         use_cpu=False
@@ -428,7 +522,7 @@ def get_base_workload():
       delta_t=0.020,
       max_prediction_steps=0.0, # populate
       planning_frequency=30,
-      agent_switch_factor=1.0, # populate
+      agent_switch_factor=1.0,
       path_length_cost_weight=0.0, # populate
       goal_distance_cost_weight=0.0, # populate
       obstacle_distance_cost_weight=0.0, # populate
@@ -534,6 +628,7 @@ def _generate_workload_yaml(workload_params):
   workload.planner_config.obstacle_distance_cost_weight = workload_params['planner_config']['obstacle_distance_cost_weight']
   workload.planner_config.trajectory_smoothness_cost_weight = workload_params['planner_config']['trajectory_smoothness_cost_weight']
   workload.planner_config.max_prediction_steps = workload_params['planner_config']['max_prediction_steps']
+  workload.percept_config.fields_config.potential_detect_shell_rad = workload_params['planner_config']['potential_detect_shell_rad']
 
   return workload.to_yaml()
 

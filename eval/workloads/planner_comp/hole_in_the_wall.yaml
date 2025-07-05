@@ -76,20 +76,26 @@ planner_config:
   loop_frequency: 1000
   service_timeout: 2500
   delta_t: 0.020
-  max_prediction_steps: 100
+  max_prediction_steps: 250
   planning_frequency: 30
   agent_switch_factor: 1.0
 
-  # path_length_cost_weight: 0.0
-  # goal_distance_cost_weight: 0.0
-  # obstacle_distance_cost_weight: 0.0
-  trajectory_smoothness_cost_weight: 0.0
 
-  # aim for all under 10.0
-  path_length_cost_weight: 0.5 # <2.0
-  goal_distance_cost_weight: 5.0e-02 # 100-500
-  obstacle_distance_cost_weight: 1.0e-01 # 10-100
-  # trajectory_smoothness_cost_weight: 1.0e+05 # 1.0e+05 # in the 10s
+  # path_length_cost_weight: 1.0
+  # goal_distance_cost_weight: 1.0
+  # obstacle_distance_cost_weight: 1.0
+  # trajectory_smoothness_cost_weight: 1.0
+
+  # # normalized weights
+  # path_length_cost_weight: 3.5e-1
+  # goal_distance_cost_weight: 1.5e-1
+  # obstacle_distance_cost_weight: 3.5e-1
+  # trajectory_smoothness_cost_weight: 5.0e+2
+
+  path_length_cost_weight: 3.5e-1
+  goal_distance_cost_weight: 8.0 # 1.5
+  obstacle_distance_cost_weight: 3.5e-1
+  trajectory_smoothness_cost_weight: 5.0e+2
   
   publish_trajectory: true
   poses:
@@ -99,34 +105,71 @@ planner_config:
     goal_orientation: [1.0, 0.0, 0.0, 0.0]
   agents:
 
+ 
+
+  # # APF-HEURISTIC
 
 
-  # MULTI-AGENT
+  # ## Too Smooth
+  # - mass: 1.0
+  #   radius: 0.020
+  #   max_velocity: 0.010
+  #   approach_distance: 0.10
+  #   force_list:
+  #   - attractor_force
+  #   - apf_heuristic_force
+  #   force_configs:
+  #     attractor_force:
+  #       k_gain: 1.25e+2
+  #       k_stiffness_linear: 5.0e-1
+  #       k_stiffness_angular: 0.00
+  #       k_damping_linear: 2.5e+0
+  #       k_damping_angular: 0.00
+  #     apf_heuristic_force:
+  #       k_gain: 1.25e+1
+  #       k_force: 1.25e-3
+  #       detect_shell_radius: 1.0
+  #       max_allowable_force: 1.0e+2
 
-
-  # APF-HEURISTIC
-
-
-  # VELOCITY-HEURISTIC
 
   - mass: 1.0
     radius: 0.020
     max_velocity: 0.010
-    approach_distance: 0.25
+    approach_distance: 0.010
+    force_list:
+    - attractor_force
+    - apf_heuristic_force
+    force_configs:
+      attractor_force:
+        k_gain: 3.0
+        k_stiffness_linear: 1.0
+        k_stiffness_angular: 0.00
+        k_damping_linear: 4.25
+        k_damping_angular: 0.00
+      apf_heuristic_force:
+        k_gain: 1.0
+        k_force: 1.0e-3
+        detect_shell_radius: 1.25
+        max_allowable_force: 100.0
+
+
+  ## TRACKING1
+  - mass: 0.5
+    radius: 0.020
+    max_velocity: 0.010
+    approach_distance: 0.010
     force_list:
     - attractor_force
     - velocity_heuristic_force
     force_configs:
       attractor_force:
         k_gain: 0.50
-        k_stiffness_linear: 1.0
+        k_stiffness_linear: 7.5e-1
         k_stiffness_angular: 0.00
-        k_damping_linear: 2.5
-        k_damping_angular: 0.025
+        k_damping_linear: 4.0
+        k_damping_angular: 0.00
       velocity_heuristic_force:
         k_gain: 1.0
-        k_force: 5.0e-3
-        detect_shell_radius: 0.50
+        k_force: 5.0e-2
+        detect_shell_radius: 0.20
         max_allowable_force: 100.0
-
-  

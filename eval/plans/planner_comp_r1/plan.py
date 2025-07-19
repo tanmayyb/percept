@@ -60,9 +60,9 @@ experiment_args = {
 }
 
 scene_ids = {
-  0: 'htw',
+  # 0: 'htw',
   # 1: 'passage',
-  # 2: 'trap',
+  2: 'trap',
   # 3: 'cluttered'
 }
 
@@ -434,9 +434,100 @@ known_agent_configs = {
     ]
   },
   'trap': {
-    'apf': [],
-    'mfi': [],
-    'multi': []
+    'apf': [
+        AgentConfig(
+            mass=0.50,
+            radius=0.020,
+            max_velocity=0.010,
+            approach_distance=0.25,
+            force_list=["attractor_force", "apf_heuristic_force"],
+            force_configs={
+              "attractor_force": {
+                "k_gain": 1.0,
+                "k_stiffness_linear": 1.0,
+                "k_stiffness_angular": 0.00,
+                "k_damping_linear": 2.5,
+                "k_damping_angular": 0.00
+              },
+              "apf_heuristic_force": {
+                "k_gain": 1.0,
+                "k_force": 1.25e-3,
+                "detect_shell_radius": 1.0,
+                "max_allowable_force": 100.0
+              }
+            }
+        )
+    ],
+    'mfi': [
+        AgentConfig(
+          mass=1.0,
+          radius=0.020,
+          max_velocity=0.010,
+          approach_distance=0.10,
+          force_list=["attractor_force", "velocity_heuristic_force"],
+          force_configs={
+            "attractor_force": {
+              "k_gain": 0.50,
+              "k_stiffness_linear": 1.0,
+              "k_stiffness_angular": 0.00,
+              "k_damping_linear": 2.5,
+              "k_damping_angular": 0.00
+            },
+            "velocity_heuristic_force": {
+              "k_gain": 1.5,
+              "k_force": 7.50e-3,
+              "detect_shell_radius": 1.0,
+              "max_allowable_force": 100.0
+            }
+          }
+        )
+    ],
+    'multi': [
+        AgentConfig(
+            mass=0.50,
+            radius=0.020,
+            max_velocity=0.010,
+            approach_distance=0.25,
+            force_list=["attractor_force", "apf_heuristic_force"],
+            force_configs={
+              "attractor_force": {
+                "k_gain": 1.0,
+                "k_stiffness_linear": 1.0,
+                "k_stiffness_angular": 0.00,
+                "k_damping_linear": 2.5,
+                "k_damping_angular": 0.00
+              },
+              "apf_heuristic_force": {
+                "k_gain": 1.0,
+                "k_force": 1.25e-3,
+                "detect_shell_radius": 1.0,
+                "max_allowable_force": 100.0
+              }
+            }
+        ),
+        AgentConfig(
+          mass=1.0,
+          radius=0.020,
+          max_velocity=0.010,
+          approach_distance=0.10,
+          force_list=["attractor_force", "velocity_heuristic_force"],
+          force_configs={
+            "attractor_force": {
+              "k_gain": 0.50,
+              "k_stiffness_linear": 1.0,
+              "k_stiffness_angular": 0.00,
+              "k_damping_linear": 2.5,
+              "k_damping_angular": 0.00
+            },
+            "velocity_heuristic_force": {
+              "k_gain": 1.5,
+              "k_force": 7.50e-3,
+              "detect_shell_radius": 1.0,
+              "max_allowable_force": 100.0
+            }
+          }
+        )
+    ]
   },
   'cluttered': {
     'apf': [
@@ -555,12 +646,12 @@ known_planner_configs = {
   "potential_detect_shell_rad": 0.66,
 },
 "trap": {
-  "path_length_cost_weight": 1.0,
-  "goal_distance_cost_weight": 3.0e-02,
-  "obstacle_distance_cost_weight": 1.0e-01,
-  "trajectory_smoothness_cost_weight": 1.0e+05,
+  "path_length_cost_weight": 1.25e-1,
+  "goal_distance_cost_weight": 1.75,
+  "obstacle_distance_cost_weight": 2.50e-6,
+  "trajectory_smoothness_cost_weight": 3.33e+2,
   "max_prediction_steps": 100,
-  "potential_detect_shell_rad": 0.25,
+  "potential_detect_shell_rad": 1.50,
 },
 "cluttered": {
   "path_length_cost_weight": 1.0,

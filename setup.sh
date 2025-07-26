@@ -1,38 +1,39 @@
 #!/bin/bash
 
-# setup env variable
-if ! grep -q "export PERCEPT_ROOT=" ~/.bashrc || ! grep -q "export PERCEPT_ROOT=$(pwd)" ~/.bashrc; then
-    sed -i '/export PERCEPT_ROOT/d' ~/.bashrc  # Remove existing PERCEPT_ROOT if present
-    echo "export PERCEPT_ROOT=$(pwd)" >> ~/.bashrc
-    echo "PERCEPT_ROOT updated in .bashrc to: $(pwd)"
+set -e  # Exit on any error
+
+ENV_NAME="percept_env"
+ENV_FILE="environment.yml"
+CURRENT_DIR="$(pwd)"
+
+# Set up PERCEPT_ROOT in .bashrc
+if ! grep -q "export PERCEPT_ROOT=" ~/.bashrc || ! grep -q "export PERCEPT_ROOT=$CURRENT_DIR" ~/.bashrc; then
+    echo "🔧 Updating PERCEPT_ROOT in ~/.bashrc..."
+    sed -i '/export PERCEPT_ROOT=/d' ~/.bashrc  # Remove any existing definition
+    echo "export PERCEPT_ROOT=$CURRENT_DIR" >> ~/.bashrc
+    echo "✅ PERCEPT_ROOT set to: $CURRENT_DIR"
+else
+    echo "ℹ️ PERCEPT_ROOT already correctly set in ~/.bashrc"
 fi
 
-# conda env
-echo "Creating conda environment..."
-conda create -n percept_env python=3.10 -y
-eval "$(conda shell.bash hook)"
+# Initialize Conda shell integration
+eval "$(conda shell.bash hook)" || { echo "❌ Failed to initialize conda"; exit 1; }
 conda init bash
-source ~/.bashrc
-conda activate percept_env || { echo "Failed to activate conda environment"; exit 1; }
+
+# Create the conda environment only if it doesn't already exist
+if conda env list | grep -qE "^\s*${ENV_NAME}\s"; then
+    echo "✅ Conda environment '$ENV_NAME' already exists, skipping creation."
+else
+    echo "🚀 Creating conda environment from $ENV_FILE..."
+    conda env create -f "$ENV_FILE" || { echo "❌ Failed to create environment"; exit 1; }
+fi
+
+# Activate the environment
+echo "⚙️  Activating environment '$ENV_NAME'..."
+conda activate "$ENV_NAME" || { echo "❌ Failed to activate conda environment"; exit 1; }
+
+# Upgrade pip
+echo "⬆️  Upgrading pip..."
 pip install --upgrade pip
 
-# maniskill
-# https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/installation.html
-pip install --upgrade maniskill
-pip install torch torchvision torchaudio
-
-# install CUDA packages
-echo "Installing CUDA packages"
-conda install -y -c conda-forge cupy numba
-
-# python-dependencies
-echo "Installing python-dependencies..."
-pip install -r requirements.txt
-
-# setup PyRep - for coppelia simulation
-# mkdir libs
-# cd libs
-# git clone https://github.com/stepjam/pyrep.git
-# cd pyrep
-# pip install -r requirements.txt
-# pip install .
+echo "✅ Setup complete. You may need to restart your terminal for PERCEPT_ROOT to take effect."

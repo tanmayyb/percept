@@ -1,0 +1,80 @@
+default:
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+
+
+stages:
+  - docker-images
+  - build
+
+
+variables:
+  IMAGES_PREFIX: $CI_REGISTRY_IMAGE/env_
+  DOCKERFILE: ".github/docker/Dockerfile"
+  RUNNER_TAG: "gitlab-org-docker"
+
+
+workflow:
+  rules:
+    - if: $CI_SERVER_HOST == "gitlab.idiap.ch"
+      variables:
+        RUNNER_TAG: "docker"
+    - when: always  
+
+
+build-docker-images-gcc:
+  stage: docker-images
+  tags:
+    - $RUNNER_TAG
+  variables:
+    COMPILER: "gcc"
+  script:
+    - VERSION=$(echo ${COMPILER_VERSION%-*})
+    - IMAGE_NAME="${IMAGES_PREFIX}${COMPILER}:${VERSION}"
+    - BASE_IMAGE="gcc:${COMPILER_VERSION}"
+    - echo $CI_JOB_TOKEN | docker login $CI_REGISTRY -u gitlab-ci-token --password-stdin
+    - docker pull ${IMAGE_NAME} || echo "Image not found"
+    - docker build -t ${IMAGE_NAME} --build-arg BASE_IMAGE=${BASE_IMAGE} -f ${DOCKERFILE} .
+    - docker push ${IMAGE_NAME}
+  parallel:
+    matrix:
+      - COMPILER_VERSION: ["10-bullseye", "11-bullseye", "12-bullseye", "13-bookworm"]
+
+
+build-docker-images-clang:
+  stage: docker-images
+  tags:
+    - $RUNNER_TAG
+  variables:
+    COMPILER: "clang"
+  script:
+    - VERSION=$(echo ${COMPILER_VERSION%-*})
+    - IMAGE_NAME="${IMAGES_PREFIX}${COMPILER}:${VERSION}"
+    - BASE_IMAGE="silkeh/clang:${COMPILER_VERSION}"
+    - echo $CI_JOB_TOKEN | docker login $CI_REGISTRY -u gitlab-ci-token --password-stdin
+    - docker pull ${IMAGE_NAME} || echo "Image not found"
+    - docker build -t ${IMAGE_NAME} --build-arg BASE_IMAGE=${BASE_IMAGE} -f ${DOCKERFILE} .
+    - docker push ${IMAGE_NAME}
+  parallel:
+    matrix:
+      - COMPILER_VERSION: ["13-bullseye", "14-bullseye", "15-bullseye", "16-bullseye"]
+
+
+build-gafro:
+  stage: build
+  tags:
+    - $RUNNER_TAG
+  image:
+    name: ${IMAGES_PREFIX}${COMPILER}:${COMPILER_VERSION}
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make install
+  parallel:
+    matrix:
+      - COMPILER: gcc
+        COMPILER_VERSION: [10, 11, 12, 13]
+      - COMPILER: clang
+        COMPILER_VERSION: [13, 14, 15, 16]

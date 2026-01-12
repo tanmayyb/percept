@@ -1,0 +1,32 @@
+target_sources(gafro_ros2
+    PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/Motor.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/MotorVector.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/System.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Point.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/PointVector.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Sphere.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/SphereVector.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Circle.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/CircleVector.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Plane.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Line.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/LineVector.cpp
+)
+
+install(
+    FILES
+        Motor.hpp
+        MotorVector.hpp
+        System.hpp
+        Point.hpp
+        PointVector.hpp
+        Sphere.hpp
+        Circle.hpp
+        CircleVector.hpp
+        Plane.hpp
+        Line.hpp
+        LineVector.hpp
+    DESTINATION
+        include/gafro_ros2/publisher
+)

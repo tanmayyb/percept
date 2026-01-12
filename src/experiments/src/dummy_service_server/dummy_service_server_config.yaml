@@ -1,0 +1,11 @@
+loop_frequency: 1000
+publishers: []
+subscribers: []
+callback_clients: []
+callback_servers: 
+  - obstacle_force
+
+callback_server:
+  obstacle_force:
+    type: obstacle_force
+    callback: get_obstacle_force

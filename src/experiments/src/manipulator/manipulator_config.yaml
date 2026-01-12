@@ -1,0 +1,150 @@
+loop_frequency: 1000
+publishers: 
+  - trajectory
+  - obstacles
+  - target
+  - pose
+  - robot
+subscribers: []
+callback_clients:
+  - apf_heuristic_force
+  - velocity_heuristic_force
+  # - obstacle_heuristic_force
+  # - goal_heuristic_force
+  # - goalobstacle_heuristic_force
+  - obstacle_distance_cost_client
+callback_servers: []
+
+publisher:
+  trajectory:
+    type: gafro_motor_vector
+    topic: trajectory
+    callback_queue: trajectory
+  target:
+    type: gafro_motor
+    topic: target
+    callback_queue: target
+  pose:
+    type: gafro_motor
+    topic: pose
+    callback_queue: pose
+  robot:
+    type: gafro_system
+    description: robots/panda/panda.yaml
+    topic: robot
+    callback_queue: robot
+    frame: world
+    color: 
+      r: 0.0
+      g: 0.0
+      b: 0.0
+      a: 0.0
+  obstacles:
+    type: gafro_sphere_vector
+    topic: obstacles
+    callback_queue: obstacles
+    frame: world
+    color:
+      r: 1.0
+      g: 0.0
+      b: 0.0
+      a: 1.0
+
+callback_client:
+
+  apf_heuristic_force:
+    type: apf_heuristic_force
+    callback_request: get_apf_heuristic_force
+    callback_response: apf_heuristic_force_response
+    timeout: 5000
+
+  velocity_heuristic_force:
+    type: velocity_heuristic_force
+    callback_request: get_velocity_heuristic_force
+    callback_response: velocity_heuristic_force_response
+    timeout: 5000
+
+  # obstacle_heuristic_force:
+  #   type: obstacle_heuristic_force
+  #   callback_request: get_obstacle_heuristic_force
+  #   callback_response: obstacle_heuristic_force_response
+  #   timeout: 5000
+    
+
+  # goal_heuristic_force:
+  #   type: goal_heuristic_force
+  #   callback_request: get_goal_heuristic_force
+  #   callback_response: goal_heuristic_force_response
+  #   timeout: 5000
+
+  # goalobstacle_heuristic_force:
+  #   type: goalobstacle_heuristic_force
+  #   callback_request: get_goalobstacle_heuristic_force
+  #   callback_response: goalobstacle_heuristic_force_response
+  #   timeout: 5000
+
+  obstacle_distance_cost_client:
+    type: obstacle_distance_cost
+    callback_request: get_min_obstacle_distance
+    callback_response: obstacle_distance_response
+    timeout: 5000
+
+cf_planner:
+  n_agents: 2
+  agent_type: manipulator
+  delta_t: 0.01
+  max_prediction_steps: 15
+  planning_frequency: 100
+  prediction_freq_multiple: 1
+  approach_distance: 0.25
+  agent_switch_factor: 1.0
+  costs:
+  - path_length_cost
+  - goal_distance_cost
+  - obstacle_distance_cost
+  path_length_cost:
+    weight: 1.0
+  goal_distance_cost:
+    weight: 2.0
+  obstacle_distance_cost:
+    weight: 4.0
+    
+  agent_1:
+    mass: 1.0
+    radius: 0.05
+    max_velocity: 0.1
+    approach_distance: 0.25
+    forces:
+    - attractor_force
+    - apf_heuristic_force
+    attractor_force:
+      k_gain: 1.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.01
+      k_damping_linear: 2.5
+      k_damping_angular: 0.025
+    apf_heuristic_force:
+      k_gain: 1.0
+      k_force: 0.5e-3
+      detect_shell_radius: 0.33
+      max_allowable_force: 20.0
+
+  agent_2:
+    mass: 1.0
+    radius: 0.05
+    max_velocity: 0.1
+    approach_distance: 0.25
+    forces:
+    - attractor_force
+    - velocity_heuristic_force
+    attractor_force:
+      k_gain: 1.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.01
+      k_damping_linear: 2.5
+      k_damping_angular: 0.025
+    velocity_heuristic_force:
+      k_gain: 1.0
+      k_force: 1.0e-3
+      detect_shell_radius: 0.33
+      max_allowable_force: 20.0

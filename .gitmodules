@@ -4,10 +4,19 @@
 [submodule "src/percept_interfaces"]
 	path = src/percept_interfaces
 	url = https://github.com/tanmayyb/percept_interfaces.git
-[submodule "src/ga_cf_planner"]
-	path = src/ga_cf_planner
-	url = git@github.com:loewt/ga_circular_fields_experiments.git
-	branch = dev/tbishnoi/staging
 [submodule "src/mp_eval"]
 	path = src/mp_eval
 	url = git@github.com:tanmayyb/mp_eval.git
+[submodule "src/ga_circular_fields_planner"]
+	path = src/ga_circular_fields_planner
+	url = git@github.com:loewt/ga_circular_fields_planner.git
+	branch = dev/tbishnoi/staging
+[submodule "src/gafro_robot_descriptions"]
+	path = src/gafro_robot_descriptions
+	url = git@gitlab.com:gafro/gafro_robot_descriptions.git
+[submodule "src/sackmesser"]
+	path = src/sackmesser
+	url = git@gitlab.com:tloew/sackmesser.git
+[submodule "src/sackmesser_ros2"]
+	path = src/sackmesser_ros2
+	url = git@gitlab.com:tloew/sackmesser_ros2.git

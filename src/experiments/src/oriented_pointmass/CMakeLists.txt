@@ -35,13 +35,14 @@ install(
 
 install(
   FILES
-    oriented_pointmass.rviz
-    oriented_pointmass_launch.py
-    oriented_pointmass_launch_headless.py
-    oriented_pointmass_config.yaml
-    obstacles_1.yaml
-    obstacles_2.yaml
-    start_goal.yaml
-  DESTINATION 
+    config/oriented_pointmass_config.yaml
+    config/start_goal.yaml
+
+		launch/oriented_pointmass_launch.py
+    launch/oriented_pointmass_launch_headless.py
+
+		rviz2/oriented_pointmass.rviz
+
+		DESTINATION 
     share/${PROJECT_NAME}/oriented_pointmass/
 )

@@ -1,4 +1,4 @@
 add_subdirectory(message_interface)
 add_subdirectory(oriented_pointmass)
-add_subdirectory(manipulator)
- 
+# add_subdirectory(manipulator)
+add_subdirectory(tests)

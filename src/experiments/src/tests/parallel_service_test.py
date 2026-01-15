@@ -36,7 +36,7 @@ def generate_launch_description():
             '/oriented_pointmass/get_goalobstacle_heuristic_force',
           ],
           'burst_size': 1000,
-          'total_bursts': 1,
+          'total_bursts': 10,
         }],
         output='screen',
       ),

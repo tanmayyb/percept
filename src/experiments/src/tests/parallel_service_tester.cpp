@@ -145,18 +145,21 @@ private:
     void report_accumulated_stats(int burst_id) {
         const int topic_w = 60;
         const int col_w = 15;
+        const int total_cols = 5;
+        const int total_width = topic_w + (col_w * total_cols);
 
-        std::cout << "\n" << std::string(topic_w + (col_w * 4), '=') << std::endl;
+        std::cout << "\n" << std::string(total_width, '=') << std::endl;
         std::cout << " ACCUMULATED REPORT AFTER BURST " << burst_id << std::endl;
-        std::cout << std::string(topic_w + (col_w * 4), '-') << std::endl;
+        std::cout << std::string(total_width, '-') << std::endl;
         
         std::cout << std::left << std::setw(topic_w) << "Topic" 
                   << std::right << std::setw(col_w) << "Total Requests" 
+                  << std::setw(col_w) << "Total Time(ms)"
                   << std::setw(col_w) << "Mean Lat(ms)" 
                   << std::setw(col_w) << "Min Lat(ms)" 
                   << std::setw(col_w) << "Max Lat(ms)" << std::endl;
         
-        std::cout << std::string(topic_w + (col_w * 4), '-') << std::endl;
+        std::cout << std::string(total_width, '-') << std::endl;
 
         for (auto const& [topic, stats_ptr] : accumulated_stats_) {
             std::lock_guard<std::mutex> lock(stats_ptr->mutex);
@@ -165,7 +168,7 @@ private:
             std::cout << std::left << std::setw(topic_w) << topic;
 
             if (latencies.empty()) {
-                std::cout << std::right << std::setw(col_w * 4) << "NO DATA" << std::endl;
+                std::cout << std::right << std::setw(col_w * total_cols) << "NO DATA" << std::endl;
                 continue;
             }
 
@@ -176,11 +179,12 @@ private:
 
             std::cout << std::right << std::fixed << std::setprecision(3)
                       << std::setw(col_w) << latencies.size()
+                      << std::setw(col_w) << sum
                       << std::setw(col_w) << mean 
                       << std::setw(col_w) << min_v 
                       << std::setw(col_w) << max_v << std::endl;
         }
-        std::cout << std::string(topic_w + (col_w * 4), '=') << "\n" << std::endl;
+        std::cout << std::string(total_width, '=') << "\n" << std::endl;
     }
 
     struct ClientEntry {

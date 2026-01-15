@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <mutex>
 #include <rclcpp/rclcpp.hpp>
 #include "percept_interfaces/srv/agent_state_to_circ_force.hpp"
 
@@ -15,12 +16,13 @@ struct ProfilerData {
     bool completed = false;
     std::vector<std::chrono::steady_clock::time_point> timestamps;
     rclcpp::Service<percept_interfaces::srv::AgentStateToCircForce>::SharedPtr service;
+    std::mutex data_mutex;
 };
 
 class MultiServiceCadenceProfiler : public rclcpp::Node
 {
 public:
-    MultiServiceCadenceProfiler() : Node("multi_service_cadence_profiler")
+    MultiServiceCadenceProfiler(const rclcpp::NodeOptions & options) : Node("multi_service_cadence_profiler", options)
     {
         this->declare_parameter<std::vector<std::string>>("service_topics", {"agent_state_to_circ_force"});
         this->declare_parameter<int>("iterations", 100);
@@ -28,21 +30,27 @@ public:
         auto topics = this->get_parameter("service_topics").as_string_array();
         int iterations = this->get_parameter("iterations").as_int();
 
+        // Reentrant callback group allows the executor to run multiple service calls in parallel
+        callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
         for (const auto & topic : topics) {
             auto data = std::make_shared<ProfilerData>();
             data->topic_name = topic;
             data->target_iterations = static_cast<size_t>(iterations);
             data->timestamps.reserve(iterations);
 
+            // Pass rclcpp::ServicesQoS() and callback_group_ to enable multi-threading
             data->service = this->create_service<percept_interfaces::srv::AgentStateToCircForce>(
                 topic,
                 [this, data](const std::shared_ptr<percept_interfaces::srv::AgentStateToCircForce::Request> request,
                              std::shared_ptr<percept_interfaces::srv::AgentStateToCircForce::Response> response) {
                     this->handle_service(data, request, response);
-                });
+                },
+                rclcpp::ServicesQoS(),
+                callback_group_);
 
             profilers_.push_back(data);
-            RCLCPP_INFO(this->get_logger(), "Initialized profiler for: %s", topic.c_str());
+            RCLCPP_INFO(this->get_logger(), "Initialized parallel profiler for: %s", topic.c_str());
         }
     }
 
@@ -60,13 +68,17 @@ private:
         response->circ_force.z = 1.0;
         response->not_null = true;
 
-        if (data->completed) return;
+        {
+            // Protect data during concurrent updates from the thread pool
+            std::lock_guard<std::mutex> lock(data->data_mutex);
+            if (data->completed) return;
 
-        data->timestamps.push_back(now);
+            data->timestamps.push_back(now);
 
-        if (data->timestamps.size() >= data->target_iterations) {
-            data->completed = true;
-            compute_and_report(data);
+            if (data->timestamps.size() >= data->target_iterations) {
+                data->completed = true;
+                compute_and_report(data);
+            }
         }
     }
 
@@ -102,14 +114,31 @@ private:
     }
 
     std::vector<std::shared_ptr<ProfilerData>> profilers_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_;
     std::mutex output_mutex_;
 };
 
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<MultiServiceCadenceProfiler>();
-    rclcpp::spin(node);
+    
+    rclcpp::NodeOptions options;
+
+    options.use_intra_process_comms(true);
+    
+    auto node = std::make_shared<MultiServiceCadenceProfiler>(options);
+    
+    rclcpp::ExecutorOptions executor_options;
+
+    size_t thread_count = std::thread::hardware_concurrency();
+
+    // rclcpp::executors::MultiThreadedExecutor executor;
+    rclcpp::executors::MultiThreadedExecutor executor(executor_options, thread_count);
+    
+    executor.add_node(node);
+    
+    executor.spin();
+    
     rclcpp::shutdown();
     return 0;
 }

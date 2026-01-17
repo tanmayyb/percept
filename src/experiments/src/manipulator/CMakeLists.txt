@@ -37,6 +37,7 @@ install(
   FILES
     manipulator.rviz
     manipulator_launch.py
+    rwe.py
     manipulator_config.yaml
     start_configuration.yaml
   DESTINATION 

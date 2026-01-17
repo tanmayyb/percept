@@ -2,6 +2,7 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(percept_interfaces REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(vfe_service_tester test_vfe.cpp)
 
@@ -51,6 +52,12 @@ install(
 		lib/${PROJECT_NAME}
 )
 
+
+# Joint State Node Configuration Copy GUI
+install(PROGRAMS
+  joint_state_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Launch Files
 install(

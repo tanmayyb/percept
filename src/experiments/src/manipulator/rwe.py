@@ -1,12 +1,8 @@
 from launch import LaunchDescription
-from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from ament_index_python.packages import get_package_share_directory
-import os.path
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
+from launch.actions import TimerAction
 
 
 def generate_launch_description():
@@ -25,7 +21,8 @@ def generate_launch_description():
   remappings = [
     ('/get_velocity_heuristic_circforce', '/manipulator/get_velocity_heuristic_force'),
     ('/get_apf_heuristic_circforce', '/manipulator/get_apf_heuristic_force'),
-		]
+    ('/get_min_obstacle_distance', '/manipulator/get_min_obstacle_distance'),
+  ]
 
   return LaunchDescription([
     arg_show_processing_delay,
@@ -48,20 +45,26 @@ def generate_launch_description():
 			package='percept_core',
 			executable='vf_engine',
 			name='vf_engine',
-			# output='screen',
 			parameters=[{
-				'show_processing_delay': LaunchConfiguration('show_processing_delay'),
-				'show_requests': LaunchConfiguration('show_requests'),
-				'show_netforce_output': True
+				'show_processing_delay': False,
+				'show_requests': False,
+				'show_netforce_output': False,
+        'mass_radius': 0.04,
+        'agent_radius': 0.04,
+          
 			}],
 			remappings=remappings,
 		),
-    Node(
-      package='experiments',
-      namespace='manipulator',
-      executable='manipulator',
-      name='manipulator',
-      output='screen',
-      arguments=['--ros-args', '--log-level', 'WARN']
-    ),
+    TimerAction(
+      period=2.0,
+      actions=[
+        Node(
+          package='experiments',
+          namespace='manipulator',
+          executable='manipulator',
+          name='manipulator',
+          output='screen',
+          arguments=['--ros-args', '--log-level', 'WARN']
+        )]
+    )
   ])

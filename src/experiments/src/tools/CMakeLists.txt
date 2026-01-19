@@ -56,6 +56,7 @@ install(
 # Joint State Node Configuration Copy GUI
 install(PROGRAMS
   joint_state_node.py
+  manipulator_service_test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -66,5 +67,5 @@ install(
 		planner_service_test.py
 		parallel_service_test.py
 	DESTINATION
-		share/${PROJECT_NAME}/tests/
+		share/${PROJECT_NAME}/tools/
 )

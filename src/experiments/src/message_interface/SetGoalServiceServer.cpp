@@ -12,38 +12,38 @@ namespace message_interface
 
     SetGoalServiceServer::~SetGoalServiceServer() = default;
 
-    ga_circular_fields_planner::SetGoalResponse SetGoalServiceServer::callback(const ga_circular_fields_planner::SetGoalRequest &)
+    ga_circular_fields_planner::SetGoalResponse SetGoalServiceServer::callback(const ga_circular_fields_planner::SetGoalRequest &request)
     {
-        return ga_circular_fields_planner::SetGoalResponse();
+        ga_circular_fields_planner::SetGoalResponse response;
+
+        if(!getInterface()->getCallbacks()->execute("set_goal_callback", response, request))
+        {
+          response.success = false;
+        }
+
+        return response;
     }
 
-    void SetGoalServiceServer::encodeResponse(const ga_circular_fields_planner::SetGoalResponse & /*response*/,
+    void SetGoalServiceServer::encodeResponse(const ga_circular_fields_planner::SetGoalResponse & response,
                                                     Message::Response::SharedPtr response_msg) const
     {
-        // request_msg->agent_pose = gafro_ros::convertToPose(request.agent_pose);
-        // request_msg->target_pose = gafro_ros::convertToPose(request.target_pose);
-
-        // request_msg->agent_velocity.x = request.agent_velocity.get<gafro::blades::e1i>();
-        // request_msg->agent_velocity.y = request.agent_velocity.get<gafro::blades::e2i>();
-        // request_msg->agent_velocity.z = request.agent_velocity.get<gafro::blades::e3i>();
-
-        // request_msg->detect_shell_rad = request.detect_shell_radius;
-
-        response_msg->success = true;
+        response_msg->success = response.success;
     }
 
     ga_circular_fields_planner::SetGoalRequest SetGoalServiceServer::decodeRequest(
-      const Message::Request::SharedPtr /*request_msg*/) const
+      const Message::Request::SharedPtr request_msg) const
     {
         ga_circular_fields_planner::SetGoalRequest request;
 
-        // request.wrench = gafro::Wrench<double>::Zero();
-
-        // request.wrench.set<gafro::blades::e01>(response_msg->circ_force.x);
-        // request.wrench.set<gafro::blades::e02>(response_msg->circ_force.y);
-        // request.wrench.set<gafro::blades::e03>(response_msg->circ_force.z);
-
-
+        request.joint_positions = Eigen::Vector<double, 7>(
+                request_msg->joint_positions[0], 
+                request_msg->joint_positions[1], 
+                request_msg->joint_positions[2], 
+                request_msg->joint_positions[3], 
+                request_msg->joint_positions[4], 
+                request_msg->joint_positions[5],
+                request_msg->joint_positions[6]
+        );
 
         return request;
     }

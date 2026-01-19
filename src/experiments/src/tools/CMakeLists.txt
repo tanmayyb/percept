@@ -49,6 +49,7 @@ install(
 
 install(PROGRAMS
   joint_state_node.py
+  task_planner.py
   # manipulator_service_test.py
   DESTINATION lib/${PROJECT_NAME}
 )

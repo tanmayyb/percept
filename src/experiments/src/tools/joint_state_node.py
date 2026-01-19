@@ -24,6 +24,11 @@ class JointStateGui(Node):
             JointState, 
             '/set_joint_states', 
             10)
+
+        self.planner_publisher = self.create_publisher(
+            JointState,
+            '/planner_input',
+            10)
             
         self.current_positions = []
         self.joint_names = []
@@ -39,6 +44,18 @@ class JointStateGui(Node):
         self.current_positions = list(msg.position)
         if not self.joint_names:
             self.joint_names = list(msg.name)
+
+    def send_to_planner(self):
+        if not self.current_positions:
+            messagebox.showwarning("Warning", "No joint state data received yet.")
+            return
+        
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = self.joint_names
+        msg.position = self.current_positions
+        self.planner_publisher.publish(msg)
+        print("Joint state sent to TaskPlanner.")
 
     def save_configuration(self, key):
         if not self.current_positions or not self.config_path:
@@ -96,13 +113,11 @@ def main():
 
     window = tk.Tk()
     window.title("ROS2 Joint State Manager")
-    window.geometry("400x520")
+    window.geometry("400x580")
 
-    # Header
     tk.Label(window, text="Joint State Monitor active", font=('Arial', 10, 'bold')).pack(pady=10)
 
-    # Section 1: Clipboard
-    tk.Label(window, text="Clipboard Tools", font=('Arial', 9, 'italic')).pack()
+    tk.Label(window, text="Clipboard & Planning", font=('Arial', 9, 'italic')).pack()
     tk.Button(
         window, 
         text="Copy Current State", 
@@ -110,9 +125,15 @@ def main():
         height=2, width=30, bg="#f0f0f0"
     ).pack(pady=5)
 
+    tk.Button(
+        window, 
+        text="Send to Task Planner", 
+        command=node.send_to_planner, 
+        height=2, width=30, bg="#ffd1d1"
+    ).pack(pady=5)
+
     tk.Frame(window, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, padx=15, pady=10)
 
-    # Section 2: Persistence
     tk.Label(window, text="File Persistence (YAML)", font=('Arial', 9, 'italic')).pack()
     tk.Button(
         window, 
@@ -130,7 +151,6 @@ def main():
 
     tk.Frame(window, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, padx=15, pady=10)
 
-    # Section 3: GUI Interaction
     tk.Label(window, text="Remote GUI Control", font=('Arial', 9, 'italic')).pack()
     tk.Button(
         window, 

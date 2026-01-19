@@ -5,6 +5,10 @@ find_package(OpenMP REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 add_executable(vfe_service_tester test_vfe.cpp)
+add_executable(parallel_service_tester parallel_service_tester.cpp)
+add_executable(planner_service_tester test_planner.cpp)
+add_executable(task_sequencer task_sequencer.cpp)
+
 
 target_link_libraries(vfe_service_tester
 	PUBLIC  
@@ -12,30 +16,11 @@ target_link_libraries(vfe_service_tester
 	percept_interfaces::percept_interfaces__rosidl_typesupport_cpp
 )
 
-install(
-	TARGETS
-  	vfe_service_tester
-  DESTINATION 
-		lib/${PROJECT_NAME}
-)
-
-add_executable(planner_service_tester test_planner.cpp)
-
 target_link_libraries(planner_service_tester
 	PUBLIC  
 		rclcpp::rclcpp
 		percept_interfaces::percept_interfaces__rosidl_typesupport_cpp
 )
-
-install(
-	TARGETS
-  	planner_service_tester
-  DESTINATION 
-		lib/${PROJECT_NAME}
-)
-
-
-add_executable(parallel_service_tester parallel_service_tester.cpp)
 
 target_link_libraries(parallel_service_tester
   PUBLIC  
@@ -45,18 +30,26 @@ target_link_libraries(parallel_service_tester
     OpenMP::OpenMP_CXX
 )
 
+target_link_libraries(task_sequencer
+  PUBLIC  
+    rclcpp::rclcpp
+    percept_interfaces::percept_interfaces__rosidl_typesupport_cpp
+)
+
+
 install(
 	TARGETS
-  	parallel_service_tester
+    vfe_service_tester
+    planner_service_tester	
+    parallel_service_tester
+    task_sequencer
   DESTINATION 
 		lib/${PROJECT_NAME}
 )
 
-
-# Joint State Node Configuration Copy GUI
 install(PROGRAMS
   joint_state_node.py
-  manipulator_service_test.py
+  # manipulator_service_test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

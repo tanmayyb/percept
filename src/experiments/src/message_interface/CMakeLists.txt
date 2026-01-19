@@ -5,14 +5,9 @@ find_package(ga_circular_fields_planner REQUIRED)
 find_package(gafro_robot_descriptions REQUIRED)
 
 add_library(message_interface SHARED
-    ObstacleHeuristicForceServiceClient.cpp
-    GoalHeuristicForceServiceClient.cpp
-    GoalObstacleHeuristicForceServiceClient.cpp
-    VelocityHeuristicForceServiceClient.cpp
-    RandomHeuristicForceServiceClient.cpp
-    APFHeuristicForceServiceClient.cpp
+    ForceServiceClient.cpp
     ObstacleDistanceServiceClient.cpp
-    NavigationFunctionForceServiceClient.cpp
+    SetGoalServiceServer.cpp
 )
 
 target_compile_options(message_interface

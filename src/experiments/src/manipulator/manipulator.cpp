@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 
         auto updated_target = cf_planner.getCurrentTarget();
 
-        interface->getCallbacks()->invoke("trajectory", trajectory);
+        // interface->getCallbacks()->invoke("trajectory", trajectory);
         interface->getCallbacks()->invoke("target", updated_target);
         interface->getCallbacks()->invoke("pose", state->getPose());
         interface->getCallbacks()->invoke("robot", Eigen::MatrixXd(std::dynamic_pointer_cast<ManipulatorAgent::State>(state)->getJointPosition()), gafro::Motor<double>());

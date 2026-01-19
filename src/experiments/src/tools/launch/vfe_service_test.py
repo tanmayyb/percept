@@ -6,6 +6,8 @@ from launch.substitutions import LaunchConfiguration
 from launch.actions import TimerAction
 
 
+
+# can only test 1 at a time
 def generate_launch_description():
 
   arg_show_processing_delay = DeclareLaunchArgument(
@@ -24,9 +26,9 @@ def generate_launch_description():
     package='experiments',
     executable='vfe_service_tester',
     parameters=[{
-      'service_topic': '/get_apf_heuristic_circforce'
-      # 'service_topic': '/get_velocity_heuristic_circforce'
-      # 'service_topic': '/get_obstacle_heuristic_circforce'
+      # 'service_topic': '/get_apf_heuristic_circforce',
+      # 'service_topic': '/get_velocity_heuristic_circforce',
+      'service_topic': '/get_obstacle_heuristic_circforce',
     }],
     output='screen'
   )
@@ -34,22 +36,25 @@ def generate_launch_description():
   return LaunchDescription([
     arg_show_processing_delay,
     arg_show_requests,
-    Node(
-      package='percept_core',
-      executable='perception_node',
-      name='perception_node',
-      arguments=['--ros-args', '--log-level', 'WARN']
-    ),
-    
+
+    # # For perception node 
     # Node(
-    # 	package='percept_core',
-    # 	executable='static_scene_loader.py',
-    # 	name='static_scene_loader',
-    # 	parameters=[{
-    # 		'loop_disable': False,
-    # 		'publish_rate': 0.03
-    # 	}]
+    #   package='percept_core',
+    #   executable='perception_node',
+    #   name='perception_node',
+    #   arguments=['--ros-args', '--log-level', 'WARN']
     # ),
+
+    # # For existing scene    
+    Node(
+    	package='percept_core',
+    	executable='static_scene_loader.py',
+    	name='static_scene_loader',
+    	parameters=[{
+    		'loop_disable': False,
+    		'publish_rate': 0.03
+    	}]
+    ),
 
     Node(
       package='percept_core',

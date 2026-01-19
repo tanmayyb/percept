@@ -22,8 +22,10 @@ def generate_launch_description():
 
 
     return LaunchDescription([
+
+      # To test parallelism of Planner Service Tester
       Node(
-        package='experiments', # Replace with actual package name
+        package='experiments',
         executable='planner_service_tester',
         name='planner_service_tester',
         # namespace='oriented_pointmass',
@@ -39,6 +41,12 @@ def generate_launch_description():
         # arguments=['--ros-args', '--log-level', 'WARN']
       ),
 
+      # # To test parallelism of VFE
+      # Node(
+      #   package='percept_core',
+      #   executable='static_scene_loader.py',
+      #   name='static_scene_loader'
+      # ),
       # Node(
       #   package='percept_core',
       #   executable='vf_engine',

@@ -63,9 +63,9 @@ install(PROGRAMS
 # Launch Files
 install(
 	FILES
-		vfe_service_test.py
-		planner_service_test.py
-		parallel_service_test.py
+		launch/vfe_service_test.py
+		launch/planner_service_test.py
+		launch/parallel_service_test.py
 	DESTINATION
 		share/${PROJECT_NAME}/tools/
 )

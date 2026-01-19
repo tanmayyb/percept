@@ -18,27 +18,26 @@ def generate_launch_description():
 
   return LaunchDescription([
     arg_num_iterations,    
-
-    Node(
-      package='experiments',
-      executable='planner_service_tester',
-      name='planner_service_tester',
-      # namespace='oriented_pointmass',
-      parameters=[{
-        'service_topics': [            
-          '/oriented_pointmass/get_apf_heuristic_force',
-          '/oriented_pointmass/get_velocity_heuristic_force',
-          '/oriented_pointmass/get_goalobstacle_heuristic_force',
-        ],
-        'iterations': LaunchConfiguration('n'),
-      }],
-      # arguments=['--ros-args', '--log-level', 'WARN']
-    ),
-        
+    
     Node(
       package='experiments',
       namespace='oriented_pointmass',
       executable='oriented_pointmass',
       name='oriented_pointmass',
     ),
+      Node(
+        package='experiments',
+        executable='planner_service_tester',
+        name='planner_service_tester',
+        parameters=[{
+          'service_topics': [            
+            '/oriented_pointmass/get_apf_heuristic_force',
+            '/oriented_pointmass/get_velocity_heuristic_force',
+            '/oriented_pointmass/get_goalobstacle_heuristic_force',
+          ],
+          'iterations': 1000,
+        }],
+        output='screen',
+      ),
+
   ])

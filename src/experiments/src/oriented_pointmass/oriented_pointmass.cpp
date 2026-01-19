@@ -46,18 +46,22 @@ int main(int argc, char **argv)
     std::thread simulation_thread = std::thread([&]() {
         while (interface->ok())
         {
-            state = cf_planner.getStateUpdate(state, target);
+            // state = cf_planner.getStateUpdate(state, target);
+            state = cf_planner.getStateUpdate(state);
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     });
 
     interface->loop([&]() {
-        if (++k % 10 == 0)
-        {
-            trajectory.push_back(state->getPose());
-        }
-        interface->getCallbacks()->invoke("trajectory", trajectory);
-        interface->getCallbacks()->invoke("target", target);
+				trajectory.push_back(state->getPose());  
+				if (++k % 10 == 0)
+				{
+        	interface->getCallbacks()->invoke("trajectory", trajectory);
+				}
+
+        auto updated_target = cf_planner.getCurrentTarget();
+
+        interface->getCallbacks()->invoke("target", updated_target);
         interface->getCallbacks()->invoke("pose", state->getPose());
     });
 

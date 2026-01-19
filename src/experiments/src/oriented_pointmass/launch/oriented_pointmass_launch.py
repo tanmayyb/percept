@@ -53,14 +53,6 @@ def generate_launch_description():
 			name='oriented_pointmass',
 			output='screen'
 		),
-		# Node(
-		# 	package='percept_core',
-		#   namespace='vf_engine',
-		#   executable='vf_engine',
-		#   name='vf_engine',
-		#   # output='screen'
-		# ),
-
 		Node(
 			package='percept_core',
 			executable='vf_engine',
@@ -69,14 +61,16 @@ def generate_launch_description():
 			parameters=[{
 				'show_processing_delay': LaunchConfiguration('show_processing_delay'),
 				'show_requests': LaunchConfiguration('show_requests'),
+				'show_netforce_output': False
 			}],
 			remappings=remappings,
 		),
 
 		Node(
-			package='percept_core',
-			executable='static_scene_loader.py',
-			name='static_scene_loader'
+      package='percept_core',
+      executable='perception_node',
+      name='perception_node',
+      arguments=['--ros-args', '--log-level', 'WARN']
 		),
 		
 		# conditional nodes

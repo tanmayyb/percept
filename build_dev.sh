@@ -19,15 +19,12 @@ colcon build \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_CXX_FLAGS="-fno-omit-frame-pointer -w" \
 	--packages-ignore \
-		mp_eval \
 		percept_interfaces \
 		sackmesser \
 		sackmesser_ros2 \
 		gafro \
 		gafro_ros2 \
 		gafro_robot_descriptions
-
-
 
 
 # export LDFLAGS='-Wl,--no-as-needed'

@@ -19,6 +19,8 @@ namespace message_interface
 
         request_msg->agent_pose = gafro_ros::convertToPose(request.agent_pose);
 
+        request_msg->radius = request.radius;
+
         return request_msg;
     }
 

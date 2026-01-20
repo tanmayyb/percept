@@ -36,6 +36,12 @@ def generate_launch_description():
                   '--child-frame-id', 'panda_link0']
     ),
     Node(
+        package='percept_core',
+        executable='fk_node',
+        name='fk_node',
+        output='screen'
+    ),
+    Node(
       package='percept_core',
       executable='perception_node',
       name='perception_node',

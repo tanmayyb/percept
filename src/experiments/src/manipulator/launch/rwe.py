@@ -1,6 +1,8 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, TimerAction
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
 
 def get_remappings():
     return [
@@ -37,9 +39,16 @@ def generate_launch_description():
         description='Show service request information'
     )
 
+    arg_enable_task_sequencer = DeclareLaunchArgument(
+        'tasks',
+        default_value='false',
+        description='Enable task sequencer node'
+    )
+
     return LaunchDescription([
         arg_show_processing_delay,
         arg_show_requests,
+        arg_enable_task_sequencer,
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -61,6 +70,16 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', 'WARN']
         ),
         get_vf_engine_node(),
+        Node(
+            package='experiments',
+            executable='task_sequencer',
+            name='task_sequencer',
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('tasks')),
+            parameters=[{
+                'rad': 0.10
+            }]
+        ),
         TimerAction(
             period=2.0,
             actions=[

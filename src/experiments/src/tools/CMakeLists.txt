@@ -51,6 +51,7 @@ install(PROGRAMS
   joint_state_node.py
   task_planner.py
   # manipulator_service_test.py
+  simp_conf.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

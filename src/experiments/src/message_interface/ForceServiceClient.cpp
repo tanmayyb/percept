@@ -24,6 +24,7 @@ namespace message_interface
         request_msg->agent_velocity.y = request.agent_velocity.get<gafro::blades::e2i>();
         request_msg->agent_velocity.z = request.agent_velocity.get<gafro::blades::e3i>();
 
+        request_msg->agent_radius = request.agent_radius;
         request_msg->detect_shell_rad = request.detect_shell_radius;
         request_msg->k_force = request.k_force;
         request_msg->max_allowable_force = request.max_allowable_force;

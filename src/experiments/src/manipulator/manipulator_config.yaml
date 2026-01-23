@@ -69,12 +69,17 @@ cf_planner:
   - path_length_cost
   - goal_distance_cost
   - obstacle_distance_cost
+  - trajectory_smoothness_cost
   path_length_cost:
     weight: 1.0
   goal_distance_cost:
     weight: 1.0
+    radius: 1.0
   obstacle_distance_cost:
     weight: 1.0    
+    radius: 1.0
+  trajectory_smoothness_cost:
+    weight: 1.0
 
   agent_1:
     mass: 1.0

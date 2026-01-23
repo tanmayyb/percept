@@ -38,6 +38,7 @@ install(
     launch/manipulator.rviz
     launch/manipulator_launch.py
     launch/rwe.py
+    launch/sim.py
     
     manipulator_config.yaml
     start_configuration.yaml

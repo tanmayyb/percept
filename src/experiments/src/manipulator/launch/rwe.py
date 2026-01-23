@@ -2,7 +2,9 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PythonExpression
+from launch_ros.parameter_descriptions import ParameterValue
+
 
 def get_remappings():
     return [
@@ -41,8 +43,13 @@ def generate_launch_description():
 
     arg_enable_task_sequencer = DeclareLaunchArgument(
         'tasks',
-        default_value='false',
+        default_value='true',
         description='Enable task sequencer node'
+    )
+
+    robot_description_content = ParameterValue(
+        Command(['cat ', EnvironmentVariable('panda_urdf')]),
+        value_type=str
     )
 
     return LaunchDescription([
@@ -58,30 +65,41 @@ def generate_launch_description():
                        '--child-frame-id', 'panda_link0']
         ),
         Node(
+              package='robot_state_publisher',
+              executable='robot_state_publisher',
+              parameters=[{'robot_description': robot_description_content}]
+          ),
+
+        TimerAction(
+            period=1.5,
+            actions=[
+            Node(
             package='percept_core',
             executable='fk_node',
             name='fk_node',
             output='screen'
-        ),
-        Node(
-            package='percept_core',
-            executable='perception_node',
-            name='perception_node',
-            arguments=['--ros-args', '--log-level', 'WARN']
-        ),
-        get_vf_engine_node(),
-        Node(
-            package='experiments',
-            executable='task_sequencer',
-            name='task_sequencer',
-            output='screen',
-            condition=IfCondition(LaunchConfiguration('tasks')),
-            parameters=[{
-                'rad': 0.10
-            }]
-        ),
+            ),
+        ]),
+
+        TimerAction(
+            period=1.5,
+            actions=[
+            Node(
+                package='percept_core',
+                executable='perception_node',
+                name='perception_node',
+                arguments=['--ros-args', '--log-level', 'WARN']
+            ),
+        ]),
+
         TimerAction(
             period=2.0,
+            actions=[
+                get_vf_engine_node(),
+                ]
+          ),
+        TimerAction(
+            period=3.0,
             actions=[
                 Node(
                     package='experiments',
@@ -89,8 +107,18 @@ def generate_launch_description():
                     executable='manipulator',
                     name='manipulator',
                     output='screen',
-                    arguments=['--ros-args', '--log-level', 'WARN']
+                    arguments=['--ros-args', '--log-level', 'WARN'],
                 )
             ]
-        )
+        ),
+        Node(
+            package='experiments',
+            executable='task_sequencer',
+            name='task_sequencer',
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('tasks')),
+            parameters=[{
+                'rad': 0.05
+            }]
+        ),
     ])

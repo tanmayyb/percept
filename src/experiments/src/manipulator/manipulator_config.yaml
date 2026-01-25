@@ -62,8 +62,6 @@ cf_planner:
   delta_t: 0.01
   max_prediction_steps: 100
   planning_frequency: 100
-  prediction_freq_multiple: 1
-  approach_distance: 0.25
   agent_switch_factor: 1.0
   costs:
   - path_length_cost
@@ -84,8 +82,6 @@ cf_planner:
   agent_1:
     mass: 1.0
     radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.05
     forces:
     - attractor_force
     - apf_heuristic_force
@@ -103,8 +99,6 @@ cf_planner:
   agent_2:
     mass: 1.0
     radius: 0.05
-    max_velocity: 0.1
-    approach_distance: 0.05
     forces:
     - attractor_force
     - velocity_heuristic_force

@@ -16,4 +16,5 @@
 	url = git@gitlab.com:tloew/sackmesser.git
 [submodule "src/sackmesser_ros2"]
 	path = src/sackmesser_ros2
-	url = git@gitlab.com:tloew/sackmesser_ros2.git
+	url = git@gitlab.com:tanmayyb/sackmesser_ros2.git
+	branch = staging

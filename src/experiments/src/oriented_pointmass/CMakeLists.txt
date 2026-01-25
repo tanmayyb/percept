@@ -40,6 +40,7 @@ install(
 
 		launch/oriented_pointmass_launch.py
     launch/oriented_pointmass_launch_headless.py
+    launch/sim_op.py
 
 		rviz2/oriented_pointmass.rviz
 

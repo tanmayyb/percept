@@ -51,7 +51,8 @@ private:
 				request->target_pose.position.y = 1.0;
 				request->target_pose.position.z = 1.0;
 				request->target_pose.orientation.w = 1.0;
-				request->detect_shell_rad = 10.0;
+				request->agent_radius = 10.0;
+        request->detect_shell_rad = 10.0;
 				request->k_force = 1.0;
 				request->max_allowable_force = 20.0;
 

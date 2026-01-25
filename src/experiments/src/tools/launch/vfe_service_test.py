@@ -26,9 +26,9 @@ def generate_launch_description():
     package='experiments',
     executable='vfe_service_tester',
     parameters=[{
-      # 'service_topic': '/get_apf_heuristic_circforce',
+      'service_topic': '/get_apf_heuristic_circforce',
       # 'service_topic': '/get_velocity_heuristic_circforce',
-      'service_topic': '/get_obstacle_heuristic_circforce',
+      # 'service_topic': '/get_obstacle_heuristic_circforce',
     }],
     output='screen'
   )
@@ -36,15 +36,6 @@ def generate_launch_description():
   return LaunchDescription([
     arg_show_processing_delay,
     arg_show_requests,
-
-    # # For perception node 
-    # Node(
-    #   package='percept_core',
-    #   executable='perception_node',
-    #   name='perception_node',
-    #   arguments=['--ros-args', '--log-level', 'WARN']
-    # ),
-
     # # For existing scene    
     Node(
     	package='percept_core',
@@ -56,17 +47,22 @@ def generate_launch_description():
     	}]
     ),
 
-    Node(
-      package='percept_core',
-      executable='vf_engine',
-      name='vf_engine',
-      # output='screen',
-      parameters=[{
-        'show_processing_delay': LaunchConfiguration('show_processing_delay'),
-        'show_requests': LaunchConfiguration('show_requests'),
-        'show_netforce_output': False
-      }],
-    ),
+    TimerAction(
+      period=1.5,
+      actions=[
+        Node(
+          package='percept_core',
+          executable='vf_engine',
+          name='vf_engine',
+          # output='screen',
+          parameters=[{
+            'show_processing_delay': LaunchConfiguration('show_processing_delay'),
+            'show_requests': LaunchConfiguration('show_requests'),
+            'show_netforce_output': False
+          }],
+        ),
+      ]
+    ),  
 
     # Node(
     #   package='percept_core',

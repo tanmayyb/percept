@@ -34,7 +34,8 @@ int main(int argc, char **argv)
     CircularFieldPlanner cf_planner(interface, "cf_planner");
 
     std::shared_ptr<Agent::State> state =
-      std::make_shared<PointmassAgent::State>(gafro::Motor<double>(start_pos, start_orientation), gafro::Twist<double>({ 0.0, 0.0, 0.0, 0.1, 0.0, 0.0 }));
+      std::make_shared<PointmassAgent::State>(
+        gafro::Motor<double>(start_pos, start_orientation), gafro::Twist<double>({ 0.0, 0.0, 0.0, 0.1, 0.0, 0.0 }));
 
     gafro::Motor<double> target(goal_pos, goal_orientation);
     std::vector<gafro::Motor<double>> trajectory;
@@ -44,11 +45,14 @@ int main(int argc, char **argv)
     int k = 0;
 
     std::thread simulation_thread = std::thread([&]() {
+        auto next_wakeup = std::chrono::steady_clock::now();
+        const std::chrono::milliseconds interval(10);
+
         while (interface->ok())
         {
-            // state = cf_planner.getStateUpdate(state, target);
+            next_wakeup += interval;
             state = cf_planner.getStateUpdate(state);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_until(next_wakeup);
         }
     });
 

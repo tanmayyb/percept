@@ -22,8 +22,7 @@ def get_vf_engine_node():
             'show_processing_delay': False,
             'show_requests': False,
             'show_netforce_output': False,
-            'mass_radius': 0.04,
-            'agent_radius': 0.04,
+            'point_radius': 0.01,
         }],
         remappings=get_remappings(),
     )

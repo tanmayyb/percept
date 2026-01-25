@@ -8,8 +8,8 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def get_remappings():
     return [
-        ('/get_velocity_heuristic_circforce', '/oriented_pointmass/get_velocity_heuristic_force'),
         ('/get_apf_heuristic_circforce', '/oriented_pointmass/get_apf_heuristic_force'),
+        ('/get_velocity_heuristic_circforce', '/oriented_pointmass/get_velocity_heuristic_force'),
         ('/get_goal_heuristic_circforce', '/oriented_pointmass/get_goal_heuristic_force'),
         ('/get_obstacle_heuristic_circforce', '/oriented_pointmass/get_obstacle_heuristic_force'),
         ('/get_goalobstacle_heuristic_circforce', '/oriented_pointmass/get_goalobstacle_heuristic_force'),

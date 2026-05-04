@@ -1,6 +1,18 @@
-
-start_pos:  [0.0, 0.0, 0.0]
-goal_pos: [0.0, 3.0, 0.0]
-
-start_orientation: [0.0, 1.0, 0.0, 0.0]
-goal_orientation: [1.0, 0.0, 0.0, 0.0]
+start_pos:
+- 0.0
+- 0.1721
+- 0.2616
+goal_pos:
+- 3.0
+- 0.1335
+- 0.0358
+start_orientation:
+- -0.0501
+- 0.9981
+- -0.0252
+- 0.0253
+goal_orientation:
+- 0.9943
+- 0.0727
+- -0.0388
+- -0.0679

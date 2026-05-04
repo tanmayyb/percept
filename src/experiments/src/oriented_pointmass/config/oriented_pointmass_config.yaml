@@ -1,20 +1,17 @@
-loop_frequency: 1000
-publishers: 
-  - target
-  - pose
-
+loop_frequency: 10000
+publishers:
+- target
+- pose
 subscribers: []
-callback_clients: 
-  - apf_heuristic_force
-  - velocity_heuristic_force
-  - goal_heuristic_force
-  - obstacle_heuristic_force
-  - goalobstacle_heuristic_force
-  - random_heuristic_force
-  - obstacle_distance_cost_client
-
+callback_clients:
+- obstacle_distance_cost_client
+- velocity_heuristic_force
+- apf_heuristic_force
+- goalobstacle_heuristic_force
+- goal_heuristic_force
+- random_heuristic_force
+- obstacle_heuristic_force
 callback_servers: []
-
 publisher:
   target:
     type: gafro_motor
@@ -24,160 +21,248 @@ publisher:
     type: gafro_motor
     topic: pose
     callback_queue: pose
-
 callback_client:
-  apf_heuristic_force:
-    type: apf_heuristic_force
-    callback_request: get_apf_heuristic_force
-    callback_response: apf_heuristic_force_response
-    timeout: 10
-
-  velocity_heuristic_force:
-    type: velocity_heuristic_force
-    callback_request: get_velocity_heuristic_force
-    callback_response: velocity_heuristic_force_response
-    timeout: 10
-
-  goal_heuristic_force:
-    type: goal_heuristic_force
-    callback_request: get_goal_heuristic_force
-    callback_response: goal_heuristic_force_response
-    timeout: 10
-
-  obstacle_heuristic_force:
-    type: obstacle_heuristic_force
-    callback_request: get_obstacle_heuristic_force
-    callback_response: obstacle_heuristic_force_response
-    timeout: 10
-
-  goalobstacle_heuristic_force:
-    type: goalobstacle_heuristic_force
-    callback_request: get_goalobstacle_heuristic_force
-    callback_response: goalobstacle_heuristic_force_response
-    timeout: 10
-
-  random_heuristic_force:
-    type: random_heuristic_force
-    callback_request: get_random_heuristic_force
-    callback_response: random_heuristic_force_response
-    timeout: 10
-
   obstacle_distance_cost_client:
     type: obstacle_distance_cost
     callback_request: get_min_obstacle_distance
     callback_response: obstacle_distance_response
     timeout: 10
-
-
+  velocity_heuristic_force:
+    type: velocity_heuristic_force
+    callback_request: get_velocity_heuristic_force
+    callback_response: velocity_heuristic_force_response
+    timeout: 10
+  apf_heuristic_force:
+    type: apf_heuristic_force
+    callback_request: get_apf_heuristic_force
+    callback_response: apf_heuristic_force_response
+    timeout: 10
+  goalobstacle_heuristic_force:
+    type: goalobstacle_heuristic_force
+    callback_request: get_goalobstacle_heuristic_force
+    callback_response: goalobstacle_heuristic_force_response
+    timeout: 10
+  goal_heuristic_force:
+    type: goal_heuristic_force
+    callback_request: get_goal_heuristic_force
+    callback_response: goal_heuristic_force_response
+    timeout: 10
+  random_heuristic_force:
+    type: random_heuristic_force
+    callback_request: get_random_heuristic_force
+    callback_response: random_heuristic_force_response
+    timeout: 10
+  obstacle_heuristic_force:
+    type: obstacle_heuristic_force
+    callback_request: get_obstacle_heuristic_force
+    callback_response: obstacle_heuristic_force_response
+    timeout: 10
 cf_planner:
-  n_agents: 5
-  agent_type: pointmass
+  n_agents: 11
+  agent_type: oriented_pointmass
   delta_t: 0.01
-  max_prediction_steps: 10
+  max_prediction_steps: 100
   planning_frequency: 100
-  agent_switch_factor: 1.0
-  costs: 
-  - path_length_cost
+  agent_switch_factor: 0.9
+  costs:
   - goal_distance_cost
   - obstacle_distance_cost
+  - path_length_cost
   - trajectory_smoothness_cost
+  goal_distance_cost:
+    weight: 2.0
+    radius: 0.25
+  obstacle_distance_cost:
+    weight: 0.125
+    radius: 1.0
   path_length_cost:
     weight: 1.0
-  goal_distance_cost:
-    weight: 1.0
-    radius: 1.0
-  obstacle_distance_cost:
-    weight: 1.0    
-    radius: 1.0
   trajectory_smoothness_cost:
     weight: 1.0
-
   agent_1:
-    mass: 0.1
+    mass: 1.0
     radius: 0.1
     forces:
-      - attractor_force
-      - velocity_heuristic_force
-    attractor_force: 
-      k_gain: 1.0
+    - attractor_force
+    - velocity_heuristic_force
+    attractor_force:
+      k_gain: 5.0
       k_stiffness_linear: 1.0
       k_stiffness_angular: 0.05
       k_damping_linear: 4.0
       k_damping_angular: 0.04
     velocity_heuristic_force:
-      k_gain: 0.25
-      k_force: 0.001
+      k_gain: 5.0
+      k_force: 0.0005
       detect_shell_radius: 1.0
       max_allowable_force: 20.0
-
   agent_2:
-    mass: 0.1
+    mass: 1.0
     radius: 0.1
     forces:
-      - attractor_force
-      - apf_heuristic_force
-    attractor_force: 
-      k_gain: 1.0
+    - attractor_force
+    - velocity_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    velocity_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.001
+      detect_shell_radius: 0.33
+      max_allowable_force: 20.0
+  agent_3:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - apf_heuristic_force
+    attractor_force:
+      k_gain: 5.0
       k_stiffness_linear: 1.0
       k_stiffness_angular: 0.05
       k_damping_linear: 4.0
       k_damping_angular: 0.04
     apf_heuristic_force:
-      k_gain: 1.0
-      k_force: 0.01
+      k_gain: 5.0
+      k_force: 0.0005
+      detect_shell_radius: 1.0
+      max_allowable_force: 20.0
+  agent_4:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - apf_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    apf_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.001
       detect_shell_radius: 0.33
       max_allowable_force: 20.0
-
-  agent_3:
-    mass: 0.1
-    radius: 0.1
-    forces:
-      - attractor_force
-      - random_heuristic_force
-    attractor_force: 
-      k_gain: 1.0
-      k_stiffness_linear: 1.0
-      k_stiffness_angular: 0.05
-      k_damping_linear: 4.0
-      k_damping_angular: 0.04
-    random_heuristic_force:
-      k_gain: 1.0
-      k_force: 1.0
-      detect_shell_radius: 1.0
-      max_allowable_force: 20.0
-
-  agent_4:
-    mass: 0.1
-    radius: 0.1
-    forces:
-      - attractor_force
-      - obstacle_heuristic_force
-    attractor_force: 
-      k_gain: 1.0
-      k_stiffness_linear: 1.0
-      k_stiffness_angular: 0.05
-      k_damping_linear: 4.0
-      k_damping_angular: 0.04
-    obstacle_heuristic_force:
-      k_gain: 1.0
-      k_force: 1.0
-      detect_shell_radius: 1.0
-      max_allowable_force: 20.0
-  
   agent_5:
-    mass: 0.1
+    mass: 1.0
     radius: 0.1
     forces:
-      - attractor_force
-      - goalobstacle_heuristic_force
-    attractor_force: 
-      k_gain: 0.50
+    - attractor_force
+    - goalobstacle_heuristic_force
+    attractor_force:
+      k_gain: 5.0
       k_stiffness_linear: 1.0
       k_stiffness_angular: 0.05
       k_damping_linear: 4.0
       k_damping_angular: 0.04
     goalobstacle_heuristic_force:
-      k_gain: 1.0
-      k_force: 0.01
+      k_gain: 5.0
+      k_force: 0.0005
       detect_shell_radius: 1.0
+      max_allowable_force: 20.0
+  agent_6:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - goalobstacle_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    goalobstacle_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.001
+      detect_shell_radius: 0.33
+      max_allowable_force: 20.0
+  agent_7:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - goal_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    goal_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.0005
+      detect_shell_radius: 1.0
+      max_allowable_force: 20.0
+  agent_8:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - random_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    random_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.0005
+      detect_shell_radius: 1.0
+      max_allowable_force: 20.0
+  agent_9:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - obstacle_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    obstacle_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.0005
+      detect_shell_radius: 1.0
+      max_allowable_force: 20.0
+  agent_10:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - obstacle_heuristic_force
+    attractor_force:
+      k_gain: 5.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    obstacle_heuristic_force:
+      k_gain: 5.0
+      k_force: 0.001
+      detect_shell_radius: 0.33
+      max_allowable_force: 20.0
+  agent_11:
+    mass: 1.0
+    radius: 0.1
+    forces:
+    - attractor_force
+    - apf_heuristic_force
+    attractor_force:
+      k_gain: 10.0
+      k_stiffness_linear: 1.0
+      k_stiffness_angular: 0.05
+      k_damping_linear: 4.0
+      k_damping_angular: 0.04
+    apf_heuristic_force:
+      k_gain: 0.0
+      k_force: 0.001
+      detect_shell_radius: 0.33
       max_allowable_force: 20.0

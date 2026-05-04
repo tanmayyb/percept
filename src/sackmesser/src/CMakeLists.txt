@@ -1,0 +1,2 @@
+add_subdirectory(sackmesser)
+add_subdirectory(sackmesser_runtime)

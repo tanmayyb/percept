@@ -1,0 +1,1 @@
+Like the swiss pocket knife this library is named after, it is a collection of handy tools when programming for robotics.

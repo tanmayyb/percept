@@ -1,0 +1,4 @@
+geometry_msgs/Pose agent_pose
+float64 radius
+---
+float64 distance

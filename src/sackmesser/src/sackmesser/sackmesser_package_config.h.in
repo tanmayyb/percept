@@ -1,0 +1,7 @@
+#pragma once
+
+#define SACKMESSER_VERSION_MAJOR @sackmesser_VERSION_MAJOR@
+#define SACKMESSER_VERSION_MINOR @sackmesser_VERSION_MINOR@
+#define SACKMESSER_VERSION_PATCH @sackmesser_VERSION_PATCH@
+
+#define DEBUG @DEBUG_MODE@

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>percept_core</name>
+  <version>0.0.0</version>
+  <description>The percept core package with GPU-accelerated fields and perception nodes</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="dev@todo.todo">dev</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  
+  <!-- 
+  <depend>rclpy</depend>
+  <depend>rclcpp</depend>
+  <depend>rviz2</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>message_filters</depend> 
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>librealsense2</depend>
+   -->
+  <depend>rclcpp</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>yaml-cpp</depend>
+  <depend>librealsense2</depend>
+  <depend>open3d</depend>
+
+	<depend>sensor_msgs</depend>
+	<depend>geometry_msgs</depend>
+	<depend>tf2_ros</depend>
+	<depend>tf2_eigen</depend>
+	<depend>eigen</depend>
+
+	<depend>percept_interfaces</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

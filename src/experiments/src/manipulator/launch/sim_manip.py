@@ -1,15 +1,18 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, TimerAction
-from launch.conditions import IfCondition
-from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PythonExpression
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration
 from launch_ros.parameter_descriptions import ParameterValue
-
 
 def get_remappings():
     return [
-        ('/get_velocity_heuristic_circforce', '/manipulator/get_velocity_heuristic_force'),
         ('/get_apf_heuristic_circforce', '/manipulator/get_apf_heuristic_force'),
+        ('/get_velocity_heuristic_circforce', '/manipulator/get_velocity_heuristic_force'),
+        ('/get_goal_heuristic_circforce', '/manipulator/get_goal_heuristic_force'),
+        ('/get_obstacle_heuristic_circforce', '/manipulator/get_obstacle_heuristic_force'),
+        ('/get_goalobstacle_heuristic_circforce', '/manipulator/get_goalobstacle_heuristic_force'),
+        ('/get_random_heuristic_circforce', '/manipulator/get_random_heuristic_force'),
         ('/get_min_obstacle_distance', '/manipulator/get_min_obstacle_distance'),
     ]
 
@@ -19,10 +22,7 @@ def get_vf_engine_node():
         executable='vf_engine',
         name='vf_engine',
         parameters=[{
-            'show_processing_delay': False,
-            'show_requests': False,
-            'show_netforce_output': False,
-            'point_radius': 0.01,
+            'point_radius': 0.01
         }],
         remappings=get_remappings(),
     )
@@ -42,8 +42,14 @@ def generate_launch_description():
 
     arg_enable_task_sequencer = DeclareLaunchArgument(
         'tasks',
-        default_value='true',
+        default_value='false',
         description='Enable task sequencer node'
+    )
+
+    arg_enable_dynamic_scene = DeclareLaunchArgument(
+        'dynamic',
+        default_value='true',
+        description='Enable dynamic scene loader node'
     )
 
     robot_description_content = ParameterValue(
@@ -55,6 +61,7 @@ def generate_launch_description():
         arg_show_processing_delay,
         arg_show_requests,
         arg_enable_task_sequencer,
+        arg_enable_dynamic_scene,
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -72,20 +79,30 @@ def generate_launch_description():
             package='percept_core',
             executable='static_scene_loader.py',
             name='static_scene_loader',
-            # arguments=['--ros-args', '--log-level', 'WARN'],
+            condition=UnlessCondition(LaunchConfiguration('dynamic')),
             parameters=[{
               'loop_disable': False,
               'publish_rate': 0.03
             }]
         ),
+        Node(
+            package='percept_core',
+            executable='dynamic_scene_loader.py',
+            name='dynamic_scene_loader',
+            condition=IfCondition(LaunchConfiguration('dynamic')),
+            parameters=[{
+              'ping_pong': True,
+              'frame_rate': 30.0
+            }]
+        ),
         TimerAction(
-            period=2.0,
+            period=0.5,
             actions=[
-                get_vf_engine_node(),
-                ]
-          ),
+              get_vf_engine_node(),
+            ]
+        ),
         TimerAction(
-            period=3.0,
+            period=0.75,
             actions=[
                 Node(
                     package='experiments',

@@ -1,10 +1,11 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, TimerAction
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import Command, EnvironmentVariable, LaunchConfiguration, PythonExpression
 from launch_ros.parameter_descriptions import ParameterValue
-
+from launch.actions import EmitEvent
+from launch.events import Shutdown
 
 def get_remappings():
     return [
@@ -23,9 +24,9 @@ def get_vf_engine_node():
         executable='vf_engine',
         name='vf_engine',
         parameters=[{
-            'show_processing_delay': False,
-            'show_requests': False,
-            'show_netforce_output': False,
+            # 'show_processing_delay': False,
+            # 'show_requests': False,
+            # 'show_netforce_output': False,
             'point_radius': 0.01
         }],
         remappings=get_remappings(),
@@ -44,6 +45,12 @@ def generate_launch_description():
         description='Show service request information'
     )
 
+    arg_dynamic = DeclareLaunchArgument(
+        'dynamic',
+        default_value='True',
+        description='Enable dynamic scene loader. If False, static scene loader is used.'
+    )
+
     # arg_enable_task_sequencer = DeclareLaunchArgument(
     #     'tasks',
     #     default_value='false',
@@ -58,6 +65,7 @@ def generate_launch_description():
     return LaunchDescription([
         arg_show_processing_delay,
         arg_show_requests,
+        arg_dynamic,
         # arg_enable_task_sequencer,
         Node(
             package='tf2_ros',
@@ -72,6 +80,7 @@ def generate_launch_description():
               executable='robot_state_publisher',
               parameters=[{'robot_description': robot_description_content}]
           ),
+
         Node(
             package='percept_core',
             executable='static_scene_loader.py',
@@ -80,16 +89,29 @@ def generate_launch_description():
             parameters=[{
               'loop_disable': False,
               'publish_rate': 0.03
-            }]
+            }],
+            condition=UnlessCondition(LaunchConfiguration('dynamic'))
         ),
+
+        Node(
+            package='percept_core',
+            executable='dynamic_scene_loader.py',
+            name='dynamic_scene_loader',
+            parameters=[{
+              'ping_pong': True,
+              'frame_rate': 30.0
+            }],
+            condition=IfCondition(LaunchConfiguration('dynamic'))
+        ),
+        
         TimerAction(
-            period=2.0,
+            period=1.0,
             actions=[
               get_vf_engine_node(),
             ]
         ),
         TimerAction(
-            period=3.0,
+            period=1.5,
             actions=[
                 Node(
                     package='experiments',
